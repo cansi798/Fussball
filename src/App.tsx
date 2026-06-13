@@ -1,5 +1,6 @@
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './context/AuthContext'
+import { SUPABASE_URL, ANON_KEY } from './lib/supabase'
 import { Layout } from './components/Layout'
 import { Login } from './pages/Login'
 import { Register } from './pages/Register'
@@ -16,7 +17,23 @@ function RequireAuth() {
   return <Layout />
 }
 
+function ConfigError() {
+  return (
+    <div className="mx-auto flex min-h-screen max-w-md flex-col justify-center px-6 text-center">
+      <div className="text-5xl">⚙️</div>
+      <h1 className="mt-3 text-2xl font-extrabold text-pitch-700">Konfiguration fehlt</h1>
+      <p className="mt-2 font-semibold text-slate-600">
+        Die Verbindung zu Supabase ist nicht konfiguriert. Beim Build müssen die
+        Variablen <code className="rounded bg-slate-100 px-1">VITE_SUPABASE_URL</code> und{' '}
+        <code className="rounded bg-slate-100 px-1">VITE_SUPABASE_ANON_KEY</code> gesetzt sein
+        (GitHub → Settings → Secrets → Actions), danach den Deploy-Workflow erneut starten.
+      </p>
+    </div>
+  )
+}
+
 export default function App() {
+  if (!SUPABASE_URL || !ANON_KEY) return <ConfigError />
   return (
     <AuthProvider>
       <HashRouter>
