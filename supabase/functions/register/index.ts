@@ -103,6 +103,23 @@ Deno.serve(async (req) => {
       }
     }
 
+    // Optionales zweites Elternteil (Ehepartner) – eigener Login, gleicher Haushalt
+    const p = body.partner
+    if (p && p.vorname && p.username && p.pin) {
+      if (badUser(p.username) || badPin(p.pin)) return json({ error: 'Zweites Elternteil: Benutzername (3–30) / PIN (4–8 Ziffern) ungültig.' }, 400)
+      const { data: dup } = await db.from('benutzer').select('id').eq('username', p.username).maybeSingle()
+      if (dup) return json({ error: `Benutzername "${p.username}" ist bereits vergeben.` }, 409)
+      const { data: pt, error: ptErr } = await db.from('teilnehmer').insert({
+        verein_id: verein.id, vorname: p.vorname, nachname: p.nachname ?? null,
+        rolle: 'elternteil', haushalt: body.haushalt.trim(),
+      }).select('id').single()
+      if (ptErr) throw ptErr
+      const { data: pb } = await db.from('benutzer').insert({
+        teilnehmer_id: pt.id, username: p.username, pin_hash: await hashSecret(p.pin),
+      }).select('id').single()
+      await db.from('teilnehmer').update({ benutzer_id: pb!.id }).eq('id', pt.id)
+    }
+
     // Direkt einloggen: JWT für den Elternteil
     const token = await signAppJwt({
       teilnehmer_id: eltern.id,

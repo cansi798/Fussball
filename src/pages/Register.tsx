@@ -15,6 +15,11 @@ export function Register() {
   const [haushalt, setHaushalt] = useState('')
   const [username, setUsername] = useState('')
   const [pin, setPin] = useState('')
+  const [partnerOn, setPartnerOn] = useState(false)
+  const [pVorname, setPVorname] = useState('')
+  const [pNachname, setPNachname] = useState('')
+  const [pUsername, setPUsername] = useState('')
+  const [pPin, setPPin] = useState('')
   const [kinder, setKinder] = useState<KindRow[]>([])
   const [fehler, setFehler] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
@@ -40,6 +45,9 @@ export function Register() {
         vorname: vorname.trim(),
         nachname: nachname.trim() || undefined,
         haushalt: haushalt.trim(),
+        partner: partnerOn && pVorname.trim() && pUsername.trim() && pPin.trim()
+          ? { vorname: pVorname.trim(), nachname: pNachname.trim() || undefined, username: pUsername.trim(), pin: pPin.trim() }
+          : undefined,
         kinder: kinder.map(({ _id, ...rest }) => ({
           ...rest,
           vorname: rest.vorname.trim(),
@@ -87,8 +95,28 @@ export function Register() {
         </section>
 
         <section className="card space-y-4 p-5">
+          <label className="flex items-center gap-2 font-extrabold text-pitch-700">
+            <input type="checkbox" className="h-5 w-5 rounded" checked={partnerOn} onChange={(e) => setPartnerOn(e.target.checked)} />
+            3 · Zweites Elternteil (Ehepartner) – optional
+          </label>
+          {partnerOn && (
+            <div className="space-y-3">
+              <div className="grid grid-cols-2 gap-3">
+                <Field label="Vorname *"><input className="input" value={pVorname} onChange={(e) => setPVorname(e.target.value)} /></Field>
+                <Field label="Nachname"><input className="input" value={pNachname} onChange={(e) => setPNachname(e.target.value)} placeholder="z. B. M." /></Field>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <Field label="Benutzername *"><input className="input" autoCapitalize="none" value={pUsername} onChange={(e) => setPUsername(e.target.value)} /></Field>
+                <Field label="PIN * (4–8 Ziffern)"><input className="input tracking-widest" type="password" inputMode="numeric" value={pPin} onChange={(e) => setPPin(e.target.value)} /></Field>
+              </div>
+              <p className="text-xs text-slate-400">Eigener Login – der zweite Elternteil meldet sich separat an. Beide Eltern können dann füreinander und für die Kinder tippen.</p>
+            </div>
+          )}
+        </section>
+
+        <section className="card space-y-4 p-5">
           <div className="flex items-center justify-between">
-            <h2 className="font-extrabold text-pitch-700">3 · Kinder</h2>
+            <h2 className="font-extrabold text-pitch-700">4 · Kinder</h2>
             <button type="button" className="btn-ghost text-sm" onClick={addKind}>+ Kind</button>
           </div>
           {kinder.length === 0 && <p className="text-sm text-slate-500 font-semibold">Noch keine Kinder hinzugefügt.</p>}

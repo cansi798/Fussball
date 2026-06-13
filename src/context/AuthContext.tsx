@@ -3,7 +3,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Membership, Rolle, Session } from '../lib/types'
 import { makeClient } from '../lib/supabase'
 import { loadSession, saveSession } from '../lib/session'
-import { apiLogin, apiRegister, apiMembership, type KindForm } from '../lib/api'
+import { apiLogin, apiRegister, apiMembership, type KindForm, type PartnerForm } from '../lib/api'
 
 /** Liest die Claims aus einem JWT (ohne Signaturprüfung – nur zum Anzeigen). */
 function decodeClaims(token: string): any {
@@ -33,7 +33,7 @@ interface AuthCtxValue {
   login: (username: string, pin: string) => Promise<void>
   register: (input: {
     einladungscode: string; username: string; pin: string
-    vorname: string; nachname?: string; haushalt: string; kinder?: KindForm[]
+    vorname: string; nachname?: string; haushalt: string; kinder?: KindForm[]; partner?: PartnerForm
   }) => Promise<void>
   applyToken: (token: string, verein?: string | null) => void
   switchVerein: (teilnehmerId: string) => Promise<void>

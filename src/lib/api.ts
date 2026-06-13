@@ -26,6 +26,13 @@ export interface KindForm {
   pin?: string
 }
 
+export interface PartnerForm {
+  vorname: string
+  nachname?: string
+  username: string
+  pin: string
+}
+
 export function apiRegister(input: {
   einladungscode: string
   username: string
@@ -34,6 +41,7 @@ export function apiRegister(input: {
   nachname?: string
   haushalt: string
   kinder?: KindForm[]
+  partner?: PartnerForm
 }) {
   return callFn('register', input)
 }
