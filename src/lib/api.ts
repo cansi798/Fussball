@@ -29,8 +29,8 @@ export interface KindForm {
 export interface PartnerForm {
   vorname: string
   nachname?: string
-  username: string
-  pin: string
+  username?: string
+  pin?: string
 }
 
 export function apiRegister(input: {

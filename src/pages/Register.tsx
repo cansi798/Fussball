@@ -16,6 +16,7 @@ export function Register() {
   const [username, setUsername] = useState('')
   const [pin, setPin] = useState('')
   const [partnerOn, setPartnerOn] = useState(false)
+  const [pLoginOn, setPLoginOn] = useState(false)
   const [pVorname, setPVorname] = useState('')
   const [pNachname, setPNachname] = useState('')
   const [pUsername, setPUsername] = useState('')
@@ -45,8 +46,13 @@ export function Register() {
         vorname: vorname.trim(),
         nachname: nachname.trim() || undefined,
         haushalt: haushalt.trim(),
-        partner: partnerOn && pVorname.trim() && pUsername.trim() && pPin.trim()
-          ? { vorname: pVorname.trim(), nachname: pNachname.trim() || undefined, username: pUsername.trim(), pin: pPin.trim() }
+        partner: partnerOn && pVorname.trim()
+          ? {
+              vorname: pVorname.trim(),
+              nachname: pNachname.trim() || undefined,
+              username: pLoginOn && pUsername.trim() ? pUsername.trim() : undefined,
+              pin: pLoginOn && pPin.trim() ? pPin.trim() : undefined,
+            }
           : undefined,
         kinder: kinder.map(({ _id, ...rest }) => ({
           ...rest,
@@ -105,11 +111,18 @@ export function Register() {
                 <Field label="Vorname *"><input className="input" value={pVorname} onChange={(e) => setPVorname(e.target.value)} /></Field>
                 <Field label="Nachname"><input className="input" value={pNachname} onChange={(e) => setPNachname(e.target.value)} placeholder="z. B. M." /></Field>
               </div>
-              <div className="grid grid-cols-2 gap-3">
-                <Field label="Benutzername *"><input className="input" autoCapitalize="none" value={pUsername} onChange={(e) => setPUsername(e.target.value)} /></Field>
-                <Field label="PIN * (4–8 Ziffern)"><input className="input tracking-widest" type="password" inputMode="numeric" value={pPin} onChange={(e) => setPPin(e.target.value)} /></Field>
-              </div>
-              <p className="text-xs text-slate-400">Eigener Login – der zweite Elternteil meldet sich separat an. Beide Eltern können dann füreinander und für die Kinder tippen.</p>
+              <label className="flex items-center gap-2 font-semibold text-slate-600">
+                <input type="checkbox" className="h-5 w-5 rounded" checked={pLoginOn} onChange={(e) => setPLoginOn(e.target.checked)} />
+                Eigenes Login für den Ehepartner (optional)
+              </label>
+              {pLoginOn ? (
+                <div className="grid grid-cols-2 gap-3">
+                  <Field label="Benutzername *"><input className="input" autoCapitalize="none" value={pUsername} onChange={(e) => setPUsername(e.target.value)} /></Field>
+                  <Field label="PIN * (4–8 Ziffern)"><input className="input tracking-widest" type="password" inputMode="numeric" value={pPin} onChange={(e) => setPPin(e.target.value)} /></Field>
+                </div>
+              ) : (
+                <p className="text-xs text-slate-400">Ohne eigenes Login wird der Ehepartner von dir mitverwaltet (du gibst seine Tipps mit ab). Mit eigenem Login meldet er sich selbst an und tippt unabhängig – dann kann niemand sonst seine Tipps ändern.</p>
+              )}
             </div>
           )}
         </section>

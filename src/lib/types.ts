@@ -63,6 +63,7 @@ export interface Teilnehmer {
   haushalt: string
   verein_id: string
   geburtsjahr: number | null
+  benutzer_id: string | null
 }
 
 export interface RanglisteRow {

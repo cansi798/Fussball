@@ -19,12 +19,13 @@ export function useFamilie() {
     ;(async () => {
       let list: Teilnehmer[] = []
       if (session.rolle === 'elternteil') {
-        // Eltern dürfen für den ganzen Haushalt tippen (Kinder + anderer Elternteil)
+        // Eltern tippen für sich + alle Haushaltsmitglieder OHNE eigenen Login
+        // (loginlose Kinder/Partner). Mitglieder mit eigenem Login verwalten sich selbst.
         const { data } = await supabase
           .from('teilnehmer').select('*')
           .eq('haushalt', session.haushalt!)
           .eq('verein_id', session.verein_id!)
-        list = data ?? []
+        list = (data ?? []).filter((t) => t.id === session.teilnehmer_id || t.benutzer_id == null)
       } else {
         const { data } = await supabase.from('teilnehmer').select('*').eq('id', session.teilnehmer_id)
         list = data ?? []
