@@ -1,9 +1,9 @@
 import { createContext, useContext, useMemo, useState, type ReactNode } from 'react'
 import type { SupabaseClient } from '@supabase/supabase-js'
-import type { Rolle, Session } from '../lib/types'
+import type { Membership, Rolle, Session } from '../lib/types'
 import { makeClient } from '../lib/supabase'
 import { loadSession, saveSession } from '../lib/session'
-import { apiLogin, apiRegister, type KindForm } from '../lib/api'
+import { apiLogin, apiRegister, apiMembership, type KindForm } from '../lib/api'
 
 /** Liest die Claims aus einem JWT (ohne Signaturprüfung – nur zum Anzeigen). */
 function decodeClaims(token: string): any {
@@ -13,7 +13,7 @@ function decodeClaims(token: string): any {
   return JSON.parse(json)
 }
 
-function sessionFrom(resp: { token: string; verein?: string | null }): Session {
+function sessionFrom(resp: { token: string; verein?: string | null; memberships?: Membership[] }): Session {
   const c = decodeClaims(resp.token)
   return {
     token: resp.token,
@@ -23,6 +23,7 @@ function sessionFrom(resp: { token: string; verein?: string | null }): Session {
     verein_id: c.verein_id ?? null,
     teilnehmer_id: c.teilnehmer_id,
     haushalt: c.haushalt ?? null,
+    memberships: resp.memberships ?? [],
   }
 }
 
@@ -35,6 +36,8 @@ interface AuthCtxValue {
     vorname: string; nachname?: string; haushalt: string; kinder?: KindForm[]
   }) => Promise<void>
   applyToken: (token: string, verein?: string | null) => void
+  switchVerein: (teilnehmerId: string) => Promise<void>
+  joinVerein: (code: string) => Promise<void>
   logout: () => void
 }
 
@@ -61,6 +64,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       apply(sessionFrom(resp))
     },
     applyToken(token, verein) { apply(sessionFrom({ token, verein })) },
+    async switchVerein(teilnehmerId) {
+      const resp = await apiMembership('switch', { teilnehmer_id: teilnehmerId }, session!.token)
+      apply(sessionFrom(resp))
+    },
+    async joinVerein(code) {
+      const resp = await apiMembership('join', { einladungscode: code }, session!.token)
+      apply(sessionFrom(resp))
+    },
     logout() { apply(null) },
   }
 

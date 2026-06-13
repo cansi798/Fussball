@@ -12,6 +12,9 @@ verify_jwt = false
 [functions.admin]
 verify_jwt = false
 
+[functions.membership]
+verify_jwt = false
+
 # sync darf nur von eingeloggten Nutzern angestoßen werden.
 [functions.sync]
 verify_jwt = true

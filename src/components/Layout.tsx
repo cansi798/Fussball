@@ -1,7 +1,43 @@
+import { useState } from 'react'
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 
 interface NavItem { to: string; label: string; icon: string }
+
+function VereinSwitcher() {
+  const { session, switchVerein, joinVerein } = useAuth()
+  const [busy, setBusy] = useState(false)
+  if (!session) return null
+  const mem = session.memberships ?? []
+
+  async function onChange(e: React.ChangeEvent<HTMLSelectElement>) {
+    const val = e.target.value
+    e.target.value = session!.teilnehmer_id // Auswahl optisch zurücksetzen
+    if (val === '__join__') {
+      const code = prompt('Einladungscode des weiteren Vereins:')
+      if (!code) return
+      setBusy(true)
+      try { await joinVerein(code.trim()) } catch (err) { alert(err instanceof Error ? err.message : 'Fehler') } finally { setBusy(false) }
+    } else if (val !== session!.teilnehmer_id) {
+      setBusy(true)
+      try { await switchVerein(val) } catch (err) { alert(err instanceof Error ? err.message : 'Fehler') } finally { setBusy(false) }
+    }
+  }
+
+  return (
+    <select
+      value={session.teilnehmer_id}
+      onChange={onChange}
+      disabled={busy}
+      title="Verein wechseln oder beitreten"
+      className="max-w-[11rem] truncate rounded-lg bg-pitch-50 px-2 py-0.5 text-xs font-bold text-pitch-700 outline-none ring-1 ring-pitch-100"
+    >
+      {mem.length === 0 && <option value={session.teilnehmer_id}>{session.verein ?? 'Verein'}</option>}
+      {mem.map((m) => <option key={m.teilnehmer_id} value={m.teilnehmer_id}>{m.verein}</option>)}
+      <option value="__join__">➕ Verein beitreten…</option>
+    </select>
+  )
+}
 
 export function Layout() {
   const { session, logout } = useAuth()
@@ -25,9 +61,11 @@ export function Layout() {
             <span className="text-2xl">⚽</span>
             <div className="min-w-0">
               <div className="font-display font-extrabold leading-tight text-pitch-700">WM 2026 Tippspiel</div>
-              <div className="truncate text-xs text-slate-500">
-                {session.verein ?? 'Verein'} · {session.vorname}
-                {session.rolle === 'admin' && ' (Admin)'}
+              <div className="flex items-center gap-1.5 text-xs text-slate-500">
+                <span className="truncate">{session.vorname}{session.rolle === 'admin' ? ' (Admin)' : ''}</span>
+                {session.rolle === 'admin'
+                  ? <span className="truncate">· {session.verein ?? 'Verein'}</span>
+                  : <VereinSwitcher />}
               </div>
             </div>
           </div>

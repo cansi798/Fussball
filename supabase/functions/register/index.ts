@@ -68,11 +68,12 @@ Deno.serve(async (req) => {
     if (eErr) throw eErr
 
     // Eltern-Login
-    await db.from('benutzer').insert({
+    const { data: bnz } = await db.from('benutzer').insert({
       teilnehmer_id: eltern.id,
       username: body.username,
       pin_hash: await hashSecret(body.pin),
-    })
+    }).select('id').single()
+    await db.from('teilnehmer').update({ benutzer_id: bnz!.id }).eq('id', eltern.id)
 
     // Kinder anlegen
     for (const k of body.kinder ?? []) {
@@ -93,11 +94,12 @@ Deno.serve(async (req) => {
         }
         const { data: dup } = await db.from('benutzer').select('id').eq('username', k.username).maybeSingle()
         if (dup) return json({ error: `Benutzername "${k.username}" ist bereits vergeben.` }, 409)
-        await db.from('benutzer').insert({
+        const { data: kb } = await db.from('benutzer').insert({
           teilnehmer_id: kind.id,
           username: k.username,
           pin_hash: await hashSecret(k.pin),
-        })
+        }).select('id').single()
+        await db.from('teilnehmer').update({ benutzer_id: kb!.id }).eq('id', kind.id)
       }
     }
 
@@ -110,7 +112,11 @@ Deno.serve(async (req) => {
       vorname: body.vorname,
     }, jwtSecret())
 
-    return json({ token, verein: verein.name, vorname: body.vorname, rolle: 'elternteil' })
+    const memberships = [{
+      teilnehmer_id: eltern.id, verein_id: verein.id, verein: verein.name,
+      rolle: 'elternteil', haushalt: body.haushalt.trim(), vorname: body.vorname,
+    }]
+    return json({ token, verein: verein.name, vorname: body.vorname, rolle: 'elternteil', memberships })
   } catch (e) {
     return json({ error: `Serverfehler: ${e instanceof Error ? e.message : String(e)}` }, 500)
   }

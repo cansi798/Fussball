@@ -49,3 +49,7 @@ export function apiSync(token: string | null) {
 export function apiAdmin(action: string, payload: Record<string, unknown>, token: string | null) {
   return callFn('admin', { action, ...payload }, token)
 }
+
+export function apiMembership(action: string, payload: Record<string, unknown>, token: string | null) {
+  return callFn('membership', { action, ...payload }, token)
+}

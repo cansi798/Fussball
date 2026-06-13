@@ -32,6 +32,14 @@ Deno.serve(async (req) => {
       vorname: tn.vorname,
     }, jwtSecret())
 
+    // Alle Vereins-Mitgliedschaften dieses Logins (für den Wechsel-Button)
+    const { data: mem } = await db.from('teilnehmer')
+      .select('id, verein_id, rolle, haushalt, vorname, verein:verein_id ( name, kuerzel )')
+      .eq('benutzer_id', (user as any).id)
+    const memberships = ((mem as any[]) ?? [])
+      .filter((t) => t.verein?.kuerzel !== 'ADMIN')
+      .map((t) => ({ teilnehmer_id: t.id, verein_id: t.verein_id, verein: t.verein?.name ?? null, rolle: t.rolle, haushalt: t.haushalt, vorname: t.vorname }))
+
     return json({
       token,
       vorname: tn.vorname,
@@ -40,6 +48,7 @@ Deno.serve(async (req) => {
       teilnehmer_id: tn.id,
       verein_id: tn.verein_id,
       haushalt: tn.haushalt,
+      memberships,
     })
   } catch (e) {
     return json({ error: `Serverfehler: ${e instanceof Error ? e.message : String(e)}` }, 500)

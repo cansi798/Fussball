@@ -2,6 +2,15 @@ export type Rolle = 'kind' | 'elternteil' | 'admin'
 export type Phase = 'gruppe' | 'ko'
 export type Sieger = 'heim' | 'gast'
 
+export interface Membership {
+  teilnehmer_id: string
+  verein_id: string | null
+  verein: string | null
+  rolle: Rolle
+  haushalt: string | null
+  vorname: string
+}
+
 export interface Session {
   token: string
   vorname: string
@@ -10,6 +19,7 @@ export interface Session {
   verein_id: string | null
   teilnehmer_id: string
   haushalt: string | null
+  memberships: Membership[]
 }
 
 export interface Mannschaft {
