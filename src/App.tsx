@@ -9,6 +9,7 @@ import { Tippen } from './pages/Tippen'
 import { Spielplan } from './pages/Spielplan'
 import { Tabellen } from './pages/Tabellen'
 import { MeineTeams } from './pages/MeineTeams'
+import { Regeln } from './pages/Regeln'
 import { Admin } from './pages/Admin'
 
 function RequireAuth() {
@@ -46,6 +47,7 @@ export default function App() {
             <Route path="/spielplan" element={<Spielplan />} />
             <Route path="/tabellen" element={<Tabellen />} />
             <Route path="/meine-teams" element={<MeineTeams />} />
+            <Route path="/regeln" element={<Regeln />} />
             <Route path="/admin" element={<Admin />} />
           </Route>
           <Route path="*" element={<Navigate to="/tippen" replace />} />
