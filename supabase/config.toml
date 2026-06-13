@@ -1,0 +1,17 @@
+# Supabase-Projektkonfiguration
+project_id = "azbaavodhzakrrescosn"
+
+# register/login/admin werden von noch-nicht-eingeloggten Clients aufgerufen
+# -> kein Gateway-JWT-Zwang (Auth passiert in der Funktion selbst).
+[functions.register]
+verify_jwt = false
+
+[functions.login]
+verify_jwt = false
+
+[functions.admin]
+verify_jwt = false
+
+# sync darf nur von eingeloggten Nutzern angestoßen werden.
+[functions.sync]
+verify_jwt = true
