@@ -25,30 +25,64 @@ function VereinAnlegen({ onCreated }: { onCreated: () => void }) {
   const [name, setName] = useState('')
   const [kuerzel, setKuerzel] = useState('')
   const [code, setCode] = useState('')
-  const [msg, setMsg] = useState<{ k: 'ok' | 'error'; t: string } | null>(null)
+  const [fehler, setFehler] = useState<string | null>(null)
+  const [created, setCreated] = useState<{ name: string; code: string } | null>(null)
+  const [copied, setCopied] = useState(false)
 
   async function submit(e: React.FormEvent) {
-    e.preventDefault(); setMsg(null)
+    e.preventDefault(); setFehler(null)
     try {
       await apiAdmin('create_verein', { name, kuerzel, einladungscode: code }, session!.token)
-      setMsg({ k: 'ok', t: `Verein "${name}" angelegt. Einladungscode: ${code.toUpperCase()}` })
+      setCreated({ name, code: code.trim().toUpperCase() })
+      setCopied(false)
       setName(''); setKuerzel(''); setCode('')
       onCreated()
     } catch (e) {
-      setMsg({ k: 'error', t: e instanceof Error ? e.message : 'Fehler' })
+      setFehler(e instanceof Error ? e.message : 'Fehler')
+    }
+  }
+
+  const shareText = created
+    ? `⚽ WM 2026 Tippspiel – ${created.name}\n\nMach mit beim Tippspiel! So geht's:\n1. Seite öffnen: https://cansi798.github.io/Fussball/#/registrieren\n2. Einladungscode eingeben: ${created.code}\n3. Benutzername + PIN wählen, Kinder hinzufügen – fertig!\n\nViel Spaß beim Tippen! 🏆`
+    : ''
+
+  async function copy() {
+    try {
+      await navigator.clipboard.writeText(shareText)
+      setCopied(true); setTimeout(() => setCopied(false), 2000)
+    } catch {
+      alert('Kopieren nicht möglich – bitte Text manuell markieren.')
     }
   }
 
   return (
     <section className="card space-y-3 p-5">
       <h2 className="font-extrabold text-pitch-700">Verein anlegen</h2>
-      {msg && <Hinweis kind={msg.k}>{msg.t}</Hinweis>}
+      {fehler && <Hinweis kind="error">{fehler}</Hinweis>}
       <form onSubmit={submit} className="grid gap-3 sm:grid-cols-3">
         <input className="input" placeholder="Name (FC Beispiel)" value={name} onChange={(e) => setName(e.target.value)} required />
         <input className="input" placeholder="Kürzel (FCB)" value={kuerzel} onChange={(e) => setKuerzel(e.target.value)} required />
         <input className="input uppercase" placeholder="Code (FCB-2026)" value={code} onChange={(e) => setCode(e.target.value)} required />
         <button className="btn-primary sm:col-span-3">Anlegen</button>
       </form>
+
+      {created && (
+        <div className="space-y-2 rounded-2xl bg-pitch-50 p-4 ring-1 ring-pitch-100">
+          <p className="font-bold text-pitch-700">✅ „{created.name}" angelegt – Einladung teilen:</p>
+          <textarea
+            readOnly
+            value={shareText}
+            rows={8}
+            onFocus={(e) => e.currentTarget.select()}
+            className="w-full resize-none rounded-xl border-2 border-pitch-100 bg-white p-3 text-sm text-slate-700"
+          />
+          <div className="flex flex-wrap gap-2">
+            <button onClick={copy} className="btn-primary px-4 py-2 text-sm">{copied ? '✓ Kopiert!' : '📋 Text kopieren'}</button>
+            <a href={`https://wa.me/?text=${encodeURIComponent(shareText)}`} target="_blank" rel="noreferrer" className="btn-ghost px-4 py-2 text-sm">WhatsApp teilen</a>
+          </div>
+          <p className="text-xs text-slate-400">Hinweis: Den Code siehst du nur jetzt – danach ist er verschlüsselt gespeichert.</p>
+        </div>
+      )}
     </section>
   )
 }

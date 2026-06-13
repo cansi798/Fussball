@@ -86,6 +86,29 @@ Deno.serve(async (req) => {
       return json({ ...prof, memberships: await listMemberships(db, benutzerId) })
     }
 
+    if (action === 'copy_to_all') {
+      // Eigene Tipps des aktiven Profils für noch nicht angepfiffene Spiele
+      const { data: myTipps } = await db.from('tipp')
+        .select('spiel_id, tipp_heim, tipp_gast, spiel:spiel_id ( anstoss )')
+        .eq('teilnehmer_id', claims.teilnehmer_id)
+      const now = Date.now()
+      const upcoming = ((myTipps as any[]) ?? []).filter((t) => t.spiel?.anstoss && new Date(t.spiel.anstoss).getTime() > now)
+      // Andere Profile desselben Logins (= andere Vereine)
+      const members = await listMemberships(db, benutzerId)
+      const targets = members.filter((m) => m.teilnehmer_id !== claims.teilnehmer_id)
+      let uebertragen = 0
+      for (const target of targets) {
+        for (const t of upcoming) {
+          await db.from('tipp').upsert(
+            { teilnehmer_id: target.teilnehmer_id, spiel_id: t.spiel_id, tipp_heim: t.tipp_heim, tipp_gast: t.tipp_gast },
+            { onConflict: 'teilnehmer_id,spiel_id' },
+          )
+          uebertragen++
+        }
+      }
+      return json({ ok: true, uebertragen, vereine: targets.length })
+    }
+
     return json({ error: `Unbekannte Aktion: ${action}` }, 400)
   } catch (e) {
     return json({ error: `Serverfehler: ${e instanceof Error ? e.message : String(e)}` }, 500)

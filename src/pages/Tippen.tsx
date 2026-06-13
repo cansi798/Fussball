@@ -5,6 +5,7 @@ import { Team } from '../components/Team'
 import { SenderBadge } from '../components/SenderBadge'
 import { Spinner, Hinweis, Leer, SegmentSwitch } from '../components/Ui'
 import { formatDatum, formatZeit } from '../lib/format'
+import { apiMembership } from '../lib/api'
 import type { Spiel, Tipp } from '../lib/types'
 
 export function Tippen() {
@@ -14,6 +15,20 @@ export function Tippen() {
   const [spiele, setSpiele] = useState<Spiel[]>([])
   const [tipps, setTipps] = useState<Record<string, Tipp>>({})
   const [loading, setLoading] = useState(true)
+  const [copying, setCopying] = useState(false)
+  const [copyMsg, setCopyMsg] = useState<string | null>(null)
+
+  async function copyToAll() {
+    setCopying(true); setCopyMsg(null)
+    try {
+      const r = await apiMembership('copy_to_all', {}, session!.token) as { uebertragen: number; vereine: number }
+      setCopyMsg(`${r.uebertragen} Tipps auf ${r.vereine} weitere(n) Verein(e) übertragen.`)
+    } catch (e) {
+      setCopyMsg(e instanceof Error ? e.message : 'Fehler')
+    } finally {
+      setCopying(false)
+    }
+  }
 
   // Standard-Spieler = man selbst
   useEffect(() => {
@@ -78,6 +93,15 @@ export function Tippen() {
       </div>
 
       <Hinweis>Tippe vor Anpfiff – bis dahin beliebig änderbar. Exakt = 3 · eine Mannschaft = 1 · sonst 0.</Hinweis>
+
+      {(session?.memberships?.length ?? 0) > 1 && (
+        <div className="flex flex-wrap items-center gap-2">
+          <button onClick={copyToAll} disabled={copying} className="btn-ghost px-4 py-2 text-sm">
+            {copying ? 'Übertrage …' : '📋 Diese Tipps auf meine anderen Vereine übertragen'}
+          </button>
+          {copyMsg && <span className="text-sm font-bold text-pitch-600">{copyMsg}</span>}
+        </div>
+      )}
 
       {spiele.length === 0 ? (
         <Leer>Aktuell stehen keine kommenden Spiele zum Tippen an. 🎉</Leer>
