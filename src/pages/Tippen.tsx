@@ -55,6 +55,7 @@ export function Tippen() {
   useEffect(() => {
     if (!alsId) return
     let aktiv = true
+    setTipps({}) // alte Tipps des vorigen Spielers sofort leeren
     ;(async () => {
       const { data } = await supabase.from('tipp').select('*').eq('teilnehmer_id', alsId)
       if (!aktiv) return
@@ -108,7 +109,7 @@ export function Tippen() {
       ) : (
         <div className="space-y-3">
           {spiele.map((s) => (
-            <TippKarte key={s.id} spiel={s} tipp={tipps[s.id]} onSave={speichern} />
+            <TippKarte key={`${alsId}:${s.id}`} spiel={s} tipp={tipps[s.id]} onSave={speichern} />
           ))}
         </div>
       )}
@@ -125,7 +126,8 @@ function TippKarte({
   const [fehler, setFehler] = useState('')
 
   useEffect(() => {
-    if (tipp) { setH(String(tipp.tipp_heim)); setG(String(tipp.tipp_gast)) }
+    setH(tipp ? String(tipp.tipp_heim) : '')
+    setG(tipp ? String(tipp.tipp_gast) : '')
   }, [tipp])
 
   const gesperrt = istVorbei(spiel.anstoss)
