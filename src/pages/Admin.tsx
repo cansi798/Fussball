@@ -15,7 +15,6 @@ export function Admin() {
       <VereinAnlegen onCreated={() => setReload((r) => r + 1)} />
       <VereineUebersicht reload={reload} />
       <SyncBox />
-      <PinReset />
       <ErgebnisPflege />
     </div>
   )
@@ -55,30 +54,64 @@ function VereinAnlegen({ onCreated }: { onCreated: () => void }) {
 }
 
 function VereineUebersicht({ reload }: { reload: number }) {
-  const { supabase } = useAuth()
+  const { supabase, session } = useAuth()
   const [vereine, setVereine] = useState<{ id: string; name: string; kuerzel: string }[]>([])
   const [mitglieder, setMitglieder] = useState<Teilnehmer[]>([])
+  const [logins, setLogins] = useState<Record<string, string>>({}) // teilnehmer_id -> username
   const [loading, setLoading] = useState(true)
+  const [busy, setBusy] = useState<string | null>(null)
+
+  async function lade() {
+    const [{ data: v }, { data: m }, { data: b }] = await Promise.all([
+      supabase.from('verein').select('id, name, kuerzel').neq('kuerzel', 'ADMIN').order('name'),
+      supabase.from('teilnehmer').select('id, vorname, nachname, rolle, haushalt, verein_id, geburtsjahr').neq('rolle', 'admin'),
+      supabase.from('benutzer').select('username, teilnehmer_id'),
+    ])
+    setVereine((v as any) ?? [])
+    setMitglieder((m as any) ?? [])
+    const map: Record<string, string> = {}
+    for (const u of (b as any[]) ?? []) map[u.teilnehmer_id] = u.username
+    setLogins(map)
+  }
 
   useEffect(() => {
     let aktiv = true
-    ;(async () => {
-      setLoading(true)
-      const [{ data: v }, { data: m }] = await Promise.all([
-        supabase.from('verein').select('id, name, kuerzel').neq('kuerzel', 'ADMIN').order('name'),
-        supabase.from('teilnehmer').select('id, vorname, nachname, rolle, haushalt, verein_id, geburtsjahr').neq('rolle', 'admin'),
-      ])
-      if (!aktiv) return
-      setVereine((v as any) ?? [])
-      setMitglieder((m as any) ?? [])
-      setLoading(false)
-    })()
+    ;(async () => { setLoading(true); await lade(); if (aktiv) setLoading(false) })()
     return () => { aktiv = false }
   }, [supabase, reload])
 
+  async function loeschen(m: Teilnehmer) {
+    if (!confirm(`„${m.vorname}" wirklich löschen? Alle Tipps dieser Person gehen verloren.`)) return
+    setBusy(m.id)
+    const { error } = await supabase.from('teilnehmer').delete().eq('id', m.id)
+    setBusy(null)
+    if (error) alert('Fehler: ' + error.message)
+    else lade()
+  }
+
+  async function vereinLoeschen(v: { id: string; name: string }) {
+    if (!confirm(`Verein „${v.name}" mit ALLEN Teilnehmern und Tipps löschen? Das kann nicht rückgängig gemacht werden.`)) return
+    setBusy(v.id)
+    const { error } = await supabase.from('verein').delete().eq('id', v.id)
+    setBusy(null)
+    if (error) alert('Fehler: ' + error.message)
+    else lade()
+  }
+
+  async function pinReset(username: string) {
+    const neu = prompt(`Neue PIN für „${username}" (4–8 Ziffern):`)
+    if (!neu) return
+    try {
+      await apiAdmin('reset_pin', { username, newPin: neu }, session!.token)
+      alert('PIN wurde neu gesetzt.')
+    } catch (e) {
+      alert('Fehler: ' + (e instanceof Error ? e.message : String(e)))
+    }
+  }
+
   return (
     <section className="card space-y-3 p-5">
-      <h2 className="font-extrabold text-pitch-700">Angelegte Vereine & Teilnehmer</h2>
+      <h2 className="font-extrabold text-pitch-700">Vereine & Teilnehmer verwalten</h2>
       {loading ? (
         <p className="text-sm text-slate-400">Lädt …</p>
       ) : vereine.length === 0 ? (
@@ -87,27 +120,38 @@ function VereineUebersicht({ reload }: { reload: number }) {
         <div className="space-y-3">
           {vereine.map((v) => {
             const leute = mitglieder.filter((m) => m.verein_id === v.id)
-            const kinder = leute.filter((m) => m.rolle === 'kind')
-            const eltern = leute.filter((m) => m.rolle === 'elternteil')
+            const eltern = leute.filter((m) => m.rolle === 'elternteil').length
+            const kinder = leute.filter((m) => m.rolle === 'kind').length
             return (
               <div key={v.id} className="rounded-2xl bg-slate-50 p-4 ring-1 ring-black/5">
                 <div className="flex items-center justify-between gap-2">
-                  <span className="font-bold text-slate-700">
-                    {v.name} <span className="text-slate-400">({v.kuerzel})</span>
-                  </span>
-                  <span className="pill bg-pitch-100 text-pitch-700 whitespace-nowrap">
-                    {eltern.length} Eltern · {kinder.length} Kinder
-                  </span>
+                  <span className="font-bold text-slate-700">{v.name} <span className="text-slate-400">({v.kuerzel})</span></span>
+                  <div className="flex items-center gap-3">
+                    <span className="pill bg-pitch-100 text-pitch-700 whitespace-nowrap">{eltern} E · {kinder} K</span>
+                    <button onClick={() => vereinLoeschen(v)} disabled={busy === v.id} className="text-xs font-bold text-red-500 hover:underline">Verein löschen</button>
+                  </div>
                 </div>
                 {leute.length === 0 ? (
                   <p className="mt-1 text-xs text-slate-400">Noch niemand registriert.</p>
                 ) : (
-                  <ul className="mt-2 flex flex-wrap gap-1.5">
-                    {leute.map((m) => (
-                      <li key={m.id} className={`pill text-xs ${m.rolle === 'kind' ? 'bg-sun-400/20 text-amber-800' : 'bg-white text-slate-600 ring-1 ring-black/10'}`}>
-                        {m.rolle === 'kind' ? '🧒' : '👤'} {m.vorname}{m.nachname ? ` ${m.nachname}` : ''}
-                      </li>
-                    ))}
+                  <ul className="mt-3 space-y-1.5">
+                    {leute.map((m) => {
+                      const user = logins[m.id]
+                      return (
+                        <li key={m.id} className="flex items-center justify-between gap-2 rounded-xl bg-white px-3 py-2 ring-1 ring-black/5">
+                          <span className="min-w-0 truncate text-sm font-semibold text-slate-700">
+                            {m.rolle === 'kind' ? '🧒' : '👤'} {m.vorname}{m.nachname ? ` ${m.nachname}` : ''}
+                            {user
+                              ? <span className="ml-2 text-xs text-slate-400">@{user}</span>
+                              : <span className="ml-2 text-xs text-slate-300">(kein Login)</span>}
+                          </span>
+                          <span className="flex shrink-0 items-center gap-3">
+                            {user && <button onClick={() => pinReset(user)} className="text-xs font-bold text-pitch-600 hover:underline">PIN</button>}
+                            <button onClick={() => loeschen(m)} disabled={busy === m.id} className="text-xs font-bold text-red-500 hover:underline">Löschen</button>
+                          </span>
+                        </li>
+                      )
+                    })}
                   </ul>
                 )}
               </div>
@@ -138,34 +182,6 @@ function SyncBox() {
       <p className="text-sm text-slate-500">Holt Spielplan & Ergebnisse von OpenLigaDB (Liga wm2026).</p>
       {msg && <Hinweis kind="ok">{msg}</Hinweis>}
       <button className="btn-primary" onClick={go} disabled={busy}>{busy ? 'Läuft …' : '🔄 Jetzt synchronisieren'}</button>
-    </section>
-  )
-}
-
-function PinReset() {
-  const { session } = useAuth()
-  const [username, setUsername] = useState('')
-  const [newPin, setNewPin] = useState('')
-  const [msg, setMsg] = useState<{ k: 'ok' | 'error'; t: string } | null>(null)
-  async function submit(e: React.FormEvent) {
-    e.preventDefault(); setMsg(null)
-    try {
-      await apiAdmin('reset_pin', { username, newPin }, session!.token)
-      setMsg({ k: 'ok', t: `PIN für "${username}" neu gesetzt.` })
-      setUsername(''); setNewPin('')
-    } catch (e) {
-      setMsg({ k: 'error', t: e instanceof Error ? e.message : 'Fehler' })
-    }
-  }
-  return (
-    <section className="card space-y-3 p-5">
-      <h2 className="font-extrabold text-pitch-700">PIN zurücksetzen</h2>
-      {msg && <Hinweis kind={msg.k}>{msg.t}</Hinweis>}
-      <form onSubmit={submit} className="grid gap-3 sm:grid-cols-3">
-        <input className="input sm:col-span-1" placeholder="Benutzername" value={username} onChange={(e) => setUsername(e.target.value)} required />
-        <input className="input sm:col-span-1" placeholder="Neue PIN" inputMode="numeric" value={newPin} onChange={(e) => setNewPin(e.target.value)} required />
-        <button className="btn-ghost sm:col-span-1">Setzen</button>
-      </form>
     </section>
   )
 }
