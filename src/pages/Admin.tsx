@@ -42,9 +42,7 @@ function VereinAnlegen({ onCreated }: { onCreated: () => void }) {
     }
   }
 
-  const shareText = created
-    ? `⚽ WM 2026 Tippspiel – ${created.name}\n\nMach mit beim Tippspiel! So geht's:\n1. Seite öffnen: https://cansi798.github.io/Fussball/#/registrieren\n2. Einladungscode eingeben: ${created.code}\n3. Benutzername + PIN wählen, Kinder hinzufügen – fertig!\n\nViel Spaß beim Tippen! 🏆`
-    : ''
+  const shareText = created ? einladungsText(created.name, created.code) : ''
 
   async function copy() {
     try {
@@ -72,7 +70,7 @@ function VereinAnlegen({ onCreated }: { onCreated: () => void }) {
           <textarea
             readOnly
             value={shareText}
-            rows={8}
+            rows={16}
             onFocus={(e) => e.currentTarget.select()}
             className="w-full resize-none rounded-xl border-2 border-pitch-100 bg-white p-3 text-sm text-slate-700"
           />
@@ -88,7 +86,30 @@ function VereinAnlegen({ onCreated }: { onCreated: () => void }) {
 }
 
 function einladungsText(name: string, code: string) {
-  return `⚽ WM 2026 Tippspiel – ${name}\n\nMach mit beim Tippspiel! So geht's:\n1. Seite öffnen: https://cansi798.github.io/Fussball/#/registrieren\n2. Einladungscode eingeben: ${code}\n3. Benutzername + PIN wählen, Kinder hinzufügen – fertig!\n\nViel Spaß beim Tippen! 🏆`
+  return [
+    `⚽🏆 WM 2026 Tippspiel – ${name} 🏆⚽`,
+    ``,
+    `Mach mit und tippe die Spiele der Fußball-WM 2026! 🎉🌍`,
+    ``,
+    `👉 So machst du mit:`,
+    `1️⃣ Seite öffnen: https://cansi798.github.io/Fussball/#/registrieren`,
+    `2️⃣ Einladungscode eingeben: ${code}`,
+    `3️⃣ Benutzername + PIN wählen, Kinder 🧒 & Partner 👩‍❤️‍👨 hinzufügen – fertig!`,
+    ``,
+    `🎯 So gibt es Punkte:`,
+    `🥇 Exaktes Ergebnis = 3 Punkte`,
+    `✅ Eine Mannschaft mit richtiger Torzahl = 1 Punkt`,
+    `❌ Sonst = 0 Punkte`,
+    `⚡ K.o.-Spiele: Stand nach Verlängerung; bei Elfmeterschießen +1 Bonus für den richtigen Sieger`,
+    ``,
+    `✨ Was du in der App kannst:`,
+    `✍️ Tippen vor Anpfiff (jederzeit änderbar)`,
+    `🏆 Ranglisten: Gesamt, nur Kinder 🧒, nur Eltern 👨‍👩‍👧`,
+    `📅 Spielplan mit TV-Sender (ARD/ZDF/MagentaTV 📺)`,
+    `⭐ Bis zu 3 Lieblings-Mannschaften verfolgen`,
+    ``,
+    `Viel Spaß beim Tippen! ⚽🎉🥳`,
+  ].join('\n')
 }
 
 function VereinCodeShare({ verein, onChanged }: { verein: { id: string; name: string; einladungscode: string | null }; onChanged: () => void }) {
