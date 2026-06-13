@@ -22,12 +22,17 @@ create or replace function app_is_admin() returns boolean
 create or replace function app_is_mine(target uuid) returns boolean
   language sql stable security definer set search_path = public as $$
   select target = app_teilnehmer()
-    or exists (
-      select 1 from teilnehmer tn
-      where tn.id = target
-        and tn.rolle = 'kind'
-        and tn.haushalt = app_haushalt()
-        and tn.verein_id = app_verein()
+    or (
+      -- Nur Eltern/Admins dürfen für Kinder im eigenen Haushalt tippen
+      -- (verhindert, dass Geschwister füreinander tippen).
+      coalesce(auth.jwt() ->> 'rolle', '') in ('elternteil', 'admin')
+      and exists (
+        select 1 from teilnehmer tn
+        where tn.id = target
+          and tn.rolle = 'kind'
+          and tn.haushalt = app_haushalt()
+          and tn.verein_id = app_verein()
+      )
     );
 $$;
 
