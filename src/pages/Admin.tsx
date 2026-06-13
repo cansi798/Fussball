@@ -337,25 +337,29 @@ function ErgebnisZeile({ spiel, onSaved }: { spiel: Spiel; onSaved: () => void }
   }
 
   return (
-    <div className="flex flex-wrap items-center gap-2 py-3 text-sm">
-      <div className="w-full text-xs font-bold text-slate-400 sm:w-40">{formatDatum(spiel.anstoss)}{spiel.phase === 'ko' ? ' · K.o.' : ''}</div>
-      <span className="min-w-0 flex-1 truncate font-bold text-slate-600">{spiel.heim?.name ?? '?'}</span>
-      <input className="w-10 rounded-lg border-2 border-slate-200 py-1 text-center font-bold" value={h} onChange={(e) => setH(e.target.value.replace(/\D/g, '').slice(0, 2))} />
-      <span>:</span>
-      <input className="w-10 rounded-lg border-2 border-slate-200 py-1 text-center font-bold" value={g} onChange={(e) => setG(e.target.value.replace(/\D/g, '').slice(0, 2))} />
-      <span className="min-w-0 flex-1 truncate text-right font-bold text-slate-600">{spiel.gast?.name ?? '?'}</span>
-      <select className="rounded-lg border-2 border-slate-200 py-1 text-xs" value={elf} onChange={(e) => setElf(e.target.value)} title="Elfmeter-Sieger">
-        <option value="">– kein Elfm. –</option>
-        <option value="heim">Elfm.: Heim</option>
-        <option value="gast">Elfm.: Gast</option>
-      </select>
-      <input className="w-28 rounded-lg border-2 border-slate-200 px-2 py-1 text-xs" placeholder="TV-Sender" value={sender} onChange={(e) => setSender(e.target.value)} />
-      <label className="flex items-center gap-1 text-xs font-bold text-slate-500">
-        <input type="checkbox" checked={beendet} onChange={(e) => setBeendet(e.target.checked)} /> fertig
-      </label>
-      <button className="btn-primary px-3 py-1 text-xs" onClick={save}>Speichern</button>
-      {status === 'ok' && <span className="text-emerald-600">✓</span>}
-      {status === 'err' && <span className="text-red-600">Fehler</span>}
+    <div className="space-y-2 py-3">
+      <div className="text-xs font-bold text-slate-400">{formatDatum(spiel.anstoss)}{spiel.phase === 'ko' ? ' · K.o.' : ''}</div>
+      <div className="flex items-center gap-2">
+        <span className="min-w-0 flex-1 truncate text-right text-sm font-bold text-slate-600">{spiel.heim?.name ?? '?'}</span>
+        <input aria-label="Tore Heim" inputMode="numeric" className="w-12 rounded-lg border-2 border-slate-200 py-2 text-center font-bold" value={h} onChange={(e) => setH(e.target.value.replace(/\D/g, '').slice(0, 2))} />
+        <span className="font-black text-slate-400">:</span>
+        <input aria-label="Tore Gast" inputMode="numeric" className="w-12 rounded-lg border-2 border-slate-200 py-2 text-center font-bold" value={g} onChange={(e) => setG(e.target.value.replace(/\D/g, '').slice(0, 2))} />
+        <span className="min-w-0 flex-1 truncate text-sm font-bold text-slate-600">{spiel.gast?.name ?? '?'}</span>
+      </div>
+      <div className="flex flex-wrap items-center gap-2">
+        <select className="rounded-lg border-2 border-slate-200 py-1.5 text-xs" value={elf} onChange={(e) => setElf(e.target.value)} title="Elfmeter-Sieger">
+          <option value="">– kein Elfm. –</option>
+          <option value="heim">Elfm.: Heim</option>
+          <option value="gast">Elfm.: Gast</option>
+        </select>
+        <input className="w-28 rounded-lg border-2 border-slate-200 px-2 py-1.5 text-xs" placeholder="TV-Sender" value={sender} onChange={(e) => setSender(e.target.value)} />
+        <label className="flex items-center gap-1 text-xs font-bold text-slate-500">
+          <input type="checkbox" checked={beendet} onChange={(e) => setBeendet(e.target.checked)} /> fertig
+        </label>
+        <button className="btn-primary px-3 py-1.5 text-xs" onClick={save}>Speichern</button>
+        {status === 'ok' && <span className="font-bold text-emerald-600">✓ gespeichert</span>}
+        {status === 'err' && <span className="font-bold text-red-600">Fehler</span>}
+      </div>
     </div>
   )
 }
