@@ -39,7 +39,7 @@ Deno.serve(async (req) => {
 
     const db = serviceClient()
     // benutzer_id des aktuellen Profils ermitteln
-    const { data: cur } = await db.from('teilnehmer').select('benutzer_id, vorname, rolle').eq('id', claims.teilnehmer_id).single()
+    const { data: cur } = await db.from('teilnehmer').select('benutzer_id, vorname, nachname, rolle, haushalt, verein_id').eq('id', claims.teilnehmer_id).single()
     const benutzerId = (cur as any)?.benutzer_id
     if (!benutzerId) return json({ error: 'Dieser Login kann keine Vereine wechseln.' }, 400)
 
@@ -76,12 +76,57 @@ Deno.serve(async (req) => {
         return json({ ...prof, memberships: await listMemberships(db, benutzerId), hinweis: 'Du warst bereits in diesem Verein.' })
       }
 
-      const rolle = (cur as any).rolle === 'admin' ? 'elternteil' : (cur as any).rolle
-      const haushalt = (body.haushalt?.trim()) || (cur as any).vorname
+      const c = cur as any
+      const haushalt = c.haushalt
+      const rolle = c.rolle === 'admin' ? 'elternteil' : c.rolle
+      // Eigenes Profil im neuen Verein
       const { data: neu, error } = await db.from('teilnehmer').insert({
-        verein_id: verein.id, vorname: (cur as any).vorname, rolle, haushalt, benutzer_id: benutzerId,
+        verein_id: verein.id, vorname: c.vorname, nachname: c.nachname ?? null, rolle, haushalt, benutzer_id: benutzerId,
       }).select('id').single()
       if (error) throw error
+      const replikate: { src: string; dst: string }[] = [{ src: claims.teilnehmer_id, dst: (neu as any).id }]
+
+      // Familie mitnehmen (optional)
+      const mitKinder = body.mitKinder !== false
+      const mitPartner = body.mitPartner !== false
+      if (mitKinder || mitPartner) {
+        const { data: family } = await db.from('teilnehmer')
+          .select('id, vorname, nachname, rolle, geburtsjahr, benutzer_id')
+          .eq('haushalt', haushalt).eq('verein_id', c.verein_id)
+        for (const m of (family as any[]) ?? []) {
+          if (m.id === claims.teilnehmer_id) continue
+          if (m.rolle === 'kind' && !mitKinder) continue
+          if (m.rolle === 'elternteil' && !mitPartner) continue
+          // schon im Zielverein?
+          let q = db.from('teilnehmer').select('id').eq('verein_id', verein.id).eq('haushalt', haushalt)
+          q = m.benutzer_id ? q.eq('benutzer_id', m.benutzer_id) : q.is('benutzer_id', null).eq('vorname', m.vorname)
+          const { data: dupe } = await q.maybeSingle()
+          if (dupe) { replikate.push({ src: m.id, dst: (dupe as any).id }); continue }
+          const { data: created } = await db.from('teilnehmer').insert({
+            verein_id: verein.id, vorname: m.vorname, nachname: m.nachname ?? null, rolle: m.rolle,
+            geburtsjahr: m.geburtsjahr ?? null, haushalt, benutzer_id: m.benutzer_id ?? null,
+          }).select('id').single()
+          replikate.push({ src: m.id, dst: (created as any).id })
+        }
+      }
+
+      // Tipps mitnehmen (optional, nur kommende Spiele)
+      if (body.mitTipps !== false) {
+        const now = Date.now()
+        for (const r of replikate) {
+          const { data: srcT } = await db.from('tipp')
+            .select('spiel_id, tipp_heim, tipp_gast, spiel:spiel_id ( anstoss )')
+            .eq('teilnehmer_id', r.src)
+          for (const t of (srcT as any[]) ?? []) {
+            if (!t.spiel?.anstoss || new Date(t.spiel.anstoss).getTime() <= now) continue
+            await db.from('tipp').upsert(
+              { teilnehmer_id: r.dst, spiel_id: t.spiel_id, tipp_heim: t.tipp_heim, tipp_gast: t.tipp_gast },
+              { onConflict: 'teilnehmer_id,spiel_id' },
+            )
+          }
+        }
+      }
+
       const prof = await tokenFor(db, (neu as any).id)
       return json({ ...prof, memberships: await listMemberships(db, benutzerId) })
     }

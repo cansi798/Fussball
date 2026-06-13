@@ -37,7 +37,7 @@ interface AuthCtxValue {
   }) => Promise<void>
   applyToken: (token: string, verein?: string | null) => void
   switchVerein: (teilnehmerId: string) => Promise<void>
-  joinVerein: (code: string) => Promise<void>
+  joinVerein: (code: string, opts?: { mitKinder?: boolean; mitPartner?: boolean; mitTipps?: boolean }) => Promise<void>
   logout: () => void
 }
 
@@ -68,8 +68,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const resp = await apiMembership('switch', { teilnehmer_id: teilnehmerId }, session!.token)
       apply(sessionFrom(resp))
     },
-    async joinVerein(code) {
-      const resp = await apiMembership('join', { einladungscode: code }, session!.token)
+    async joinVerein(code, opts) {
+      const resp = await apiMembership('join', { einladungscode: code, ...(opts ?? {}) }, session!.token)
       apply(sessionFrom(resp))
     },
     logout() { apply(null) },

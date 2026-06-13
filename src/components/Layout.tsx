@@ -5,7 +5,8 @@ import { useAuth } from '../context/AuthContext'
 interface NavItem { to: string; label: string; icon: string }
 
 function VereinSwitcher() {
-  const { session, switchVerein, joinVerein } = useAuth()
+  const { session, switchVerein } = useAuth()
+  const navigate = useNavigate()
   const [busy, setBusy] = useState(false)
   if (!session) return null
   const mem = session.memberships ?? []
@@ -14,10 +15,7 @@ function VereinSwitcher() {
     const val = e.target.value
     e.target.value = session!.teilnehmer_id // Auswahl optisch zurücksetzen
     if (val === '__join__') {
-      const code = prompt('Einladungscode des weiteren Vereins:')
-      if (!code) return
-      setBusy(true)
-      try { await joinVerein(code.trim()) } catch (err) { alert(err instanceof Error ? err.message : 'Fehler') } finally { setBusy(false) }
+      navigate('/beitreten')
     } else if (val !== session!.teilnehmer_id) {
       setBusy(true)
       try { await switchVerein(val) } catch (err) { alert(err instanceof Error ? err.message : 'Fehler') } finally { setBusy(false) }

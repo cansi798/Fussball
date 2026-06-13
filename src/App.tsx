@@ -10,6 +10,7 @@ import { Spielplan } from './pages/Spielplan'
 import { Tabellen } from './pages/Tabellen'
 import { MeineTeams } from './pages/MeineTeams'
 import { Regeln } from './pages/Regeln'
+import { Beitreten } from './pages/Beitreten'
 import { Admin } from './pages/Admin'
 
 function RequireAuth() {
@@ -48,6 +49,7 @@ export default function App() {
             <Route path="/tabellen" element={<Tabellen />} />
             <Route path="/meine-teams" element={<MeineTeams />} />
             <Route path="/regeln" element={<Regeln />} />
+            <Route path="/beitreten" element={<Beitreten />} />
             <Route path="/admin" element={<Admin />} />
           </Route>
           <Route path="*" element={<Navigate to="/tippen" replace />} />
