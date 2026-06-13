@@ -19,11 +19,12 @@ export function useFamilie() {
     ;(async () => {
       let list: Teilnehmer[] = []
       if (session.rolle === 'elternteil') {
+        // Eltern dürfen für den ganzen Haushalt tippen (Kinder + anderer Elternteil)
         const { data } = await supabase
           .from('teilnehmer').select('*')
           .eq('haushalt', session.haushalt!)
           .eq('verein_id', session.verein_id!)
-        list = (data ?? []).filter((t) => t.id === session.teilnehmer_id || t.rolle === 'kind')
+        list = data ?? []
       } else {
         const { data } = await supabase.from('teilnehmer').select('*').eq('id', session.teilnehmer_id)
         list = data ?? []
