@@ -3,15 +3,17 @@ import { useAuth } from '../context/AuthContext'
 import { apiAdmin, apiSync } from '../lib/api'
 import { Hinweis, Leer } from '../components/Ui'
 import { formatDatum } from '../lib/format'
-import type { Sieger, Spiel } from '../lib/types'
+import type { Sieger, Spiel, Teilnehmer } from '../lib/types'
 
 export function Admin() {
   const { session } = useAuth()
+  const [reload, setReload] = useState(0)
   if (session?.rolle !== 'admin') return <Leer>Nur für Admins.</Leer>
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-extrabold text-pitch-700">🛠️ Admin</h1>
-      <VereinAnlegen />
+      <VereinAnlegen onCreated={() => setReload((r) => r + 1)} />
+      <VereineUebersicht reload={reload} />
       <SyncBox />
       <PinReset />
       <ErgebnisPflege />
@@ -19,7 +21,7 @@ export function Admin() {
   )
 }
 
-function VereinAnlegen() {
+function VereinAnlegen({ onCreated }: { onCreated: () => void }) {
   const { session } = useAuth()
   const [name, setName] = useState('')
   const [kuerzel, setKuerzel] = useState('')
@@ -32,6 +34,7 @@ function VereinAnlegen() {
       await apiAdmin('create_verein', { name, kuerzel, einladungscode: code }, session!.token)
       setMsg({ k: 'ok', t: `Verein "${name}" angelegt. Einladungscode: ${code.toUpperCase()}` })
       setName(''); setKuerzel(''); setCode('')
+      onCreated()
     } catch (e) {
       setMsg({ k: 'error', t: e instanceof Error ? e.message : 'Fehler' })
     }
@@ -47,6 +50,71 @@ function VereinAnlegen() {
         <input className="input uppercase" placeholder="Code (FCB-2026)" value={code} onChange={(e) => setCode(e.target.value)} required />
         <button className="btn-primary sm:col-span-3">Anlegen</button>
       </form>
+    </section>
+  )
+}
+
+function VereineUebersicht({ reload }: { reload: number }) {
+  const { supabase } = useAuth()
+  const [vereine, setVereine] = useState<{ id: string; name: string; kuerzel: string }[]>([])
+  const [mitglieder, setMitglieder] = useState<Teilnehmer[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    let aktiv = true
+    ;(async () => {
+      setLoading(true)
+      const [{ data: v }, { data: m }] = await Promise.all([
+        supabase.from('verein').select('id, name, kuerzel').neq('kuerzel', 'ADMIN').order('name'),
+        supabase.from('teilnehmer').select('id, vorname, nachname, rolle, haushalt, verein_id, geburtsjahr').neq('rolle', 'admin'),
+      ])
+      if (!aktiv) return
+      setVereine((v as any) ?? [])
+      setMitglieder((m as any) ?? [])
+      setLoading(false)
+    })()
+    return () => { aktiv = false }
+  }, [supabase, reload])
+
+  return (
+    <section className="card space-y-3 p-5">
+      <h2 className="font-extrabold text-pitch-700">Angelegte Vereine & Teilnehmer</h2>
+      {loading ? (
+        <p className="text-sm text-slate-400">Lädt …</p>
+      ) : vereine.length === 0 ? (
+        <p className="text-sm text-slate-500">Noch keine Vereine angelegt.</p>
+      ) : (
+        <div className="space-y-3">
+          {vereine.map((v) => {
+            const leute = mitglieder.filter((m) => m.verein_id === v.id)
+            const kinder = leute.filter((m) => m.rolle === 'kind')
+            const eltern = leute.filter((m) => m.rolle === 'elternteil')
+            return (
+              <div key={v.id} className="rounded-2xl bg-slate-50 p-4 ring-1 ring-black/5">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="font-bold text-slate-700">
+                    {v.name} <span className="text-slate-400">({v.kuerzel})</span>
+                  </span>
+                  <span className="pill bg-pitch-100 text-pitch-700 whitespace-nowrap">
+                    {eltern.length} Eltern · {kinder.length} Kinder
+                  </span>
+                </div>
+                {leute.length === 0 ? (
+                  <p className="mt-1 text-xs text-slate-400">Noch niemand registriert.</p>
+                ) : (
+                  <ul className="mt-2 flex flex-wrap gap-1.5">
+                    {leute.map((m) => (
+                      <li key={m.id} className={`pill text-xs ${m.rolle === 'kind' ? 'bg-sun-400/20 text-amber-800' : 'bg-white text-slate-600 ring-1 ring-black/10'}`}>
+                        {m.rolle === 'kind' ? '🧒' : '👤'} {m.vorname}{m.nachname ? ` ${m.nachname}` : ''}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            )
+          })}
+        </div>
+      )}
     </section>
   )
 }
