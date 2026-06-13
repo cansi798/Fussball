@@ -59,13 +59,25 @@ Deno.serve(async (req) => {
       if (!body.name || !body.kuerzel || !body.einladungscode) {
         return json({ error: 'name, kuerzel, einladungscode nötig.' }, 400)
       }
+      const c = normCode(body.einladungscode)
       const { data, error } = await db.from('verein').insert({
         name: body.name,
         kuerzel: body.kuerzel,
-        einladungscode_hash: await hashSecret(normCode(body.einladungscode)),
+        einladungscode: c,
+        einladungscode_hash: await hashSecret(c),
       }).select('id, name, kuerzel').single()
       if (error) throw error
       return json({ ok: true, verein: data })
+    }
+
+    if (action === 'set_code') {
+      if (!body.verein_id || !body.einladungscode) return json({ error: 'verein_id + einladungscode nötig.' }, 400)
+      const c = normCode(body.einladungscode)
+      const { error } = await db.from('verein')
+        .update({ einladungscode: c, einladungscode_hash: await hashSecret(c) })
+        .eq('id', body.verein_id)
+      if (error) throw error
+      return json({ ok: true, code: c })
     }
 
     if (action === 'reset_pin') {

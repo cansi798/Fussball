@@ -87,9 +87,51 @@ function VereinAnlegen({ onCreated }: { onCreated: () => void }) {
   )
 }
 
+function einladungsText(name: string, code: string) {
+  return `⚽ WM 2026 Tippspiel – ${name}\n\nMach mit beim Tippspiel! So geht's:\n1. Seite öffnen: https://cansi798.github.io/Fussball/#/registrieren\n2. Einladungscode eingeben: ${code}\n3. Benutzername + PIN wählen, Kinder hinzufügen – fertig!\n\nViel Spaß beim Tippen! 🏆`
+}
+
+function VereinCodeShare({ verein, onChanged }: { verein: { id: string; name: string; einladungscode: string | null }; onChanged: () => void }) {
+  const { session } = useAuth()
+  const [copied, setCopied] = useState(false)
+  const [codeInput, setCodeInput] = useState('')
+  const [saving, setSaving] = useState(false)
+  const code = verein.einladungscode
+  const text = code ? einladungsText(verein.name, code) : ''
+
+  async function copy() {
+    try { await navigator.clipboard.writeText(text); setCopied(true); setTimeout(() => setCopied(false), 2000) }
+    catch { alert('Kopieren nicht möglich – bitte Text manuell markieren.') }
+  }
+  async function speichern(e: React.FormEvent) {
+    e.preventDefault()
+    if (!codeInput.trim()) return
+    setSaving(true)
+    try { await apiAdmin('set_code', { verein_id: verein.id, einladungscode: codeInput.trim() }, session!.token); onChanged() }
+    catch (err) { alert(err instanceof Error ? err.message : 'Fehler') }
+    finally { setSaving(false) }
+  }
+
+  if (!code) {
+    return (
+      <form onSubmit={speichern} className="mt-2 flex items-center gap-2">
+        <input className="input max-w-[11rem] py-1.5 text-sm uppercase" placeholder="Einladungscode festlegen" value={codeInput} onChange={(e) => setCodeInput(e.target.value)} />
+        <button className="btn-ghost px-3 py-1.5 text-xs" disabled={saving}>Speichern & teilen</button>
+      </form>
+    )
+  }
+  return (
+    <div className="mt-2 flex flex-wrap items-center gap-2">
+      <span className="pill bg-slate-100 font-mono text-slate-600">{code}</span>
+      <button onClick={copy} className="btn-ghost px-3 py-1.5 text-xs">{copied ? '✓ Kopiert' : '📋 Einladung teilen'}</button>
+      <a href={`https://wa.me/?text=${encodeURIComponent(text)}`} target="_blank" rel="noreferrer" className="btn-ghost px-3 py-1.5 text-xs">WhatsApp</a>
+    </div>
+  )
+}
+
 function VereineUebersicht({ reload }: { reload: number }) {
   const { supabase, session } = useAuth()
-  const [vereine, setVereine] = useState<{ id: string; name: string; kuerzel: string }[]>([])
+  const [vereine, setVereine] = useState<{ id: string; name: string; kuerzel: string; einladungscode: string | null }[]>([])
   const [mitglieder, setMitglieder] = useState<Teilnehmer[]>([])
   const [logins, setLogins] = useState<Record<string, string>>({}) // teilnehmer_id -> username
   const [loading, setLoading] = useState(true)
@@ -97,7 +139,7 @@ function VereineUebersicht({ reload }: { reload: number }) {
 
   async function lade() {
     const [{ data: v }, { data: m }, { data: b }] = await Promise.all([
-      supabase.from('verein').select('id, name, kuerzel').neq('kuerzel', 'ADMIN').order('name'),
+      supabase.from('verein').select('id, name, kuerzel, einladungscode').neq('kuerzel', 'ADMIN').order('name'),
       supabase.from('teilnehmer').select('id, vorname, nachname, rolle, haushalt, verein_id, geburtsjahr').neq('rolle', 'admin'),
       supabase.from('benutzer').select('username, teilnehmer_id'),
     ])
@@ -165,6 +207,7 @@ function VereineUebersicht({ reload }: { reload: number }) {
                     <button onClick={() => vereinLoeschen(v)} disabled={busy === v.id} className="text-xs font-bold text-red-500 hover:underline">Verein löschen</button>
                   </div>
                 </div>
+                <VereinCodeShare verein={v} onChanged={lade} />
                 {leute.length === 0 ? (
                   <p className="mt-1 text-xs text-slate-400">Noch niemand registriert.</p>
                 ) : (
