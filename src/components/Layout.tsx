@@ -49,7 +49,7 @@ export function Layout() {
     { to: '/spielplan', label: 'Spielplan', icon: '📅' },
     { to: '/tabellen', label: 'Tabelle', icon: '🏆' },
   ]
-  if (session.rolle === 'kind') items.push({ to: '/meine-teams', label: 'Meine Teams', icon: '⭐' })
+  if (session.rolle !== 'admin') items.push({ to: '/meine-teams', label: 'Meine Teams', icon: '⭐' })
   if (session.rolle === 'admin') items.push({ to: '/admin', label: 'Admin', icon: '🛠️' })
 
   return (
