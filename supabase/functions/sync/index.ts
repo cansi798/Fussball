@@ -39,7 +39,10 @@ Deno.serve(async (req) => {
   const opt = handleOptions(req)
   if (opt) return opt
   try {
-    const { liga = 'wm2026', saison = '2026' } = await req.json().catch(() => ({}))
+    const body = await req.json().catch(() => ({}))
+    // Eingaben strikt validieren (verhindert Pfad-Injection in die OpenLigaDB-URL)
+    const liga = /^[a-zA-Z0-9_]{1,40}$/.test(body.liga ?? '') ? body.liga : 'wm2026'
+    const saison = /^\d{4}$/.test(body.saison ?? '') ? body.saison : '2026'
     const db = serviceClient()
 
     const res = await fetch(`https://api.openligadb.de/getmatchdata/${liga}/${saison}`)

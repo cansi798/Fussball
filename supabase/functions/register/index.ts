@@ -13,6 +13,12 @@ interface KindInput {
   username?: string
   pin?: string
 }
+interface PartnerInput {
+  vorname: string
+  nachname?: string
+  username?: string
+  pin?: string
+}
 interface RegisterInput {
   einladungscode: string
   username: string
@@ -21,6 +27,7 @@ interface RegisterInput {
   nachname?: string
   haushalt: string
   kinder?: KindInput[]
+  partner?: PartnerInput
 }
 
 function badPin(pin: string) {

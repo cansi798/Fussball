@@ -25,7 +25,7 @@ export function SegmentSwitch<T extends string>({
   value, onChange, options,
 }: { value: T; onChange: (v: T) => void; options: { value: T; label: string }[] }) {
   return (
-    <div className="inline-flex rounded-2xl bg-white/70 p-1 ring-1 ring-black/5 shadow-sm">
+    <div className="inline-flex flex-wrap gap-1 rounded-2xl bg-white/70 p-1 ring-1 ring-black/5 shadow-sm">
       {options.map((o) => (
         <button
           key={o.value}

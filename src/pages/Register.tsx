@@ -108,7 +108,7 @@ export function Register() {
           {partnerOn && (
             <div className="space-y-3">
               <div className="grid grid-cols-2 gap-3">
-                <Field label="Vorname *"><input className="input" value={pVorname} onChange={(e) => setPVorname(e.target.value)} /></Field>
+                <Field label="Vorname *"><input className="input" required={partnerOn} value={pVorname} onChange={(e) => setPVorname(e.target.value)} /></Field>
                 <Field label="Nachname"><input className="input" value={pNachname} onChange={(e) => setPNachname(e.target.value)} placeholder="z. B. M." /></Field>
               </div>
               <label className="flex items-center gap-2 font-semibold text-slate-600">
@@ -117,8 +117,8 @@ export function Register() {
               </label>
               {pLoginOn ? (
                 <div className="grid grid-cols-2 gap-3">
-                  <Field label="Benutzername *"><input className="input" autoCapitalize="none" value={pUsername} onChange={(e) => setPUsername(e.target.value)} /></Field>
-                  <Field label="PIN * (4–8 Ziffern)"><input className="input tracking-widest" type="password" inputMode="numeric" value={pPin} onChange={(e) => setPPin(e.target.value)} /></Field>
+                  <Field label="Benutzername *"><input className="input" required={pLoginOn} autoCapitalize="none" value={pUsername} onChange={(e) => setPUsername(e.target.value)} /></Field>
+                  <Field label="PIN * (4–8 Ziffern)"><input className="input tracking-widest" required={pLoginOn} type="password" inputMode="numeric" value={pPin} onChange={(e) => setPPin(e.target.value)} /></Field>
                 </div>
               ) : (
                 <p className="text-xs text-slate-400">Ohne eigenes Login wird der Ehepartner von dir mitverwaltet (du gibst seine Tipps mit ab). Mit eigenem Login meldet er sich selbst an und tippt unabhängig – dann kann niemand sonst seine Tipps ändern.</p>

@@ -29,7 +29,7 @@ export function Tabellen() {
 
   const istAdmin = session?.rolle === 'admin'
   const vereine = useMemo(
-    () => [...new Map(rows.map((r) => [r.verein_id, r.verein_id])).keys()],
+    () => [...new Map(rows.map((r) => [r.verein_id, r.verein ?? r.verein_id])).entries()].map(([id, name]) => ({ id, name })),
     [rows],
   )
 
@@ -60,7 +60,7 @@ export function Tabellen() {
       {istAdmin && vereine.length > 1 && (
         <select className="input max-w-xs" value={vereinFilter} onChange={(e) => setVereinFilter(e.target.value)}>
           <option value="">Alle Vereine</option>
-          {vereine.map((v) => <option key={v} value={v}>{v}</option>)}
+          {vereine.map((v) => <option key={v.id} value={v.id}>{v.name}</option>)}
         </select>
       )}
 

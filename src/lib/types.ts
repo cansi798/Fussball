@@ -69,10 +69,10 @@ export interface Teilnehmer {
 export interface RanglisteRow {
   teilnehmer_id: string
   verein_id: string
+  verein: string | null
   vorname: string
   nachname: string | null
   rolle: Rolle
-  haushalt: string
   punkte: number
   exakt: number
   teiltreffer: number

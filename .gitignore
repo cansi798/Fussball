@@ -16,3 +16,7 @@ build/
 
 # Lokale Claude-Einstellungen
 .claude/settings.local.json
+
+# QA-/Test-Artefakte
+.playwright-mcp/
+/*.png

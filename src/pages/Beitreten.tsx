@@ -43,7 +43,7 @@ export function Beitreten() {
         </div>
         <button className="btn-primary w-full" disabled={busy}>{busy ? 'Trete bei …' : 'Beitreten'}</button>
       </form>
-      <button onClick={() => navigate(-1)} className="btn-ghost w-full">Abbrechen</button>
+      <button onClick={() => navigate('/tippen')} className="btn-ghost w-full">Abbrechen</button>
     </div>
   )
 }

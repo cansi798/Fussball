@@ -95,16 +95,16 @@ Deno.serve(async (req) => {
           .eq('haushalt', haushalt).eq('verein_id', c.verein_id)
         for (const m of (family as any[]) ?? []) {
           if (m.id === claims.teilnehmer_id) continue
+          if (m.benutzer_id) continue // Mitglieder mit eigenem Login treten selbst bei
           if (m.rolle === 'kind' && !mitKinder) continue
           if (m.rolle === 'elternteil' && !mitPartner) continue
-          // schon im Zielverein?
-          let q = db.from('teilnehmer').select('id').eq('verein_id', verein.id).eq('haushalt', haushalt)
-          q = m.benutzer_id ? q.eq('benutzer_id', m.benutzer_id) : q.is('benutzer_id', null).eq('vorname', m.vorname)
-          const { data: dupe } = await q.maybeSingle()
+          // schon im Zielverein (loginloses Mitglied gleichen Namens)?
+          const { data: dupe } = await db.from('teilnehmer').select('id')
+            .eq('verein_id', verein.id).eq('haushalt', haushalt).is('benutzer_id', null).eq('vorname', m.vorname).maybeSingle()
           if (dupe) { replikate.push({ src: m.id, dst: (dupe as any).id }); continue }
           const { data: created } = await db.from('teilnehmer').insert({
             verein_id: verein.id, vorname: m.vorname, nachname: m.nachname ?? null, rolle: m.rolle,
-            geburtsjahr: m.geburtsjahr ?? null, haushalt, benutzer_id: m.benutzer_id ?? null,
+            geburtsjahr: m.geburtsjahr ?? null, haushalt, benutzer_id: null,
           }).select('id').single()
           replikate.push({ src: m.id, dst: (created as any).id })
         }

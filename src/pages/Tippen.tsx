@@ -4,7 +4,7 @@ import { useFamilie } from '../hooks/useFamilie'
 import { Team } from '../components/Team'
 import { SenderBadge } from '../components/SenderBadge'
 import { Spinner, Hinweis, Leer, SegmentSwitch } from '../components/Ui'
-import { formatDatum, formatZeit } from '../lib/format'
+import { formatDatum, formatZeit, istVorbei } from '../lib/format'
 import { apiMembership } from '../lib/api'
 import type { Spiel, Tipp } from '../lib/types'
 
@@ -94,10 +94,10 @@ export function Tippen() {
 
       <Hinweis>Tippe vor Anpfiff – bis dahin beliebig änderbar. Exakt = 3 · eine Mannschaft = 1 · sonst 0.</Hinweis>
 
-      {(session?.memberships?.length ?? 0) > 1 && (
+      {(session?.memberships?.length ?? 0) > 1 && alsId === session?.teilnehmer_id && (
         <div className="flex flex-wrap items-center gap-2">
           <button onClick={copyToAll} disabled={copying} className="btn-ghost px-4 py-2 text-sm">
-            {copying ? 'Übertrage …' : '📋 Diese Tipps auf meine anderen Vereine übertragen'}
+            {copying ? 'Übertrage …' : '📋 Meine Tipps auf meine anderen Vereine übertragen'}
           </button>
           {copyMsg && <span className="text-sm font-bold text-pitch-600">{copyMsg}</span>}
         </div>
@@ -128,10 +128,11 @@ function TippKarte({
     if (tipp) { setH(String(tipp.tipp_heim)); setG(String(tipp.tipp_gast)) }
   }, [tipp])
 
+  const gesperrt = istVorbei(spiel.anstoss)
   const gueltig = /^\d{1,2}$/.test(h) && /^\d{1,2}$/.test(g)
 
   async function save() {
-    if (!gueltig) return
+    if (!gueltig || gesperrt) return
     setStatus('saving'); setFehler('')
     try {
       await onSave(spiel.id, Number(h), Number(g))
@@ -154,19 +155,22 @@ function TippKarte({
       </div>
       <div className="flex items-center gap-2">
         <div className="flex-1"><Team team={spiel.heim} /></div>
-        <input aria-label="Tore Heim" className="w-12 rounded-xl border-2 border-slate-200 py-2 text-center text-xl font-extrabold focus:border-pitch-500 outline-none"
+        <input aria-label="Tore Heim" disabled={gesperrt} className="w-12 rounded-xl border-2 border-slate-200 py-2 text-center text-xl font-extrabold focus:border-pitch-500 outline-none disabled:bg-slate-100"
           inputMode="numeric" value={h} onChange={(e) => setH(e.target.value.replace(/\D/g, '').slice(0, 2))} />
         <span className="font-black text-slate-400">:</span>
-        <input aria-label="Tore Gast" className="w-12 rounded-xl border-2 border-slate-200 py-2 text-center text-xl font-extrabold focus:border-pitch-500 outline-none"
+        <input aria-label="Tore Gast" disabled={gesperrt} className="w-12 rounded-xl border-2 border-slate-200 py-2 text-center text-xl font-extrabold focus:border-pitch-500 outline-none disabled:bg-slate-100"
           inputMode="numeric" value={g} onChange={(e) => setG(e.target.value.replace(/\D/g, '').slice(0, 2))} />
         <div className="flex-1"><Team team={spiel.gast} align="right" /></div>
       </div>
       <div className="mt-3 flex items-center justify-end gap-3">
-        {status === 'ok' && <span className="text-sm font-bold text-emerald-600">✓ gespeichert</span>}
-        {status === 'err' && <span className="text-sm font-bold text-red-600">{fehler}</span>}
-        <button className="btn-primary px-4 py-2 text-sm" disabled={!gueltig || status === 'saving'} onClick={save}>
-          {tipp ? 'Ändern' : 'Tippen'}
-        </button>
+        {gesperrt && <span className="text-sm font-bold text-slate-400">⏱ angepfiffen – gesperrt</span>}
+        {!gesperrt && status === 'ok' && <span className="text-sm font-bold text-emerald-600">✓ gespeichert</span>}
+        {!gesperrt && status === 'err' && <span className="text-sm font-bold text-red-600">{fehler}</span>}
+        {!gesperrt && (
+          <button className="btn-primary px-4 py-2 text-sm" disabled={!gueltig || status === 'saving'} onClick={save}>
+            {tipp ? 'Ändern' : 'Tippen'}
+          </button>
+        )}
       </div>
     </div>
   )
