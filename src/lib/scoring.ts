@@ -41,3 +41,24 @@ export function tippGuete(
   if (tippH === realH || tippG === realG) return 'teiltreffer'
   return 'daneben'
 }
+
+/**
+ * Aufschlüsselung eines Tipps für die Rückschau ("Meine Tipps").
+ * Liefert die Klassifikation (siehe `tippGuete`) und ob der K.o.-Elfmeter-
+ * Sieger-Bonus gegriffen hat – rein zur ERKLÄRUNG. Die tatsächlichen Punkte
+ * stammen aus dem gespeicherten `tipp.punkte` (SQL-Trigger), nicht von hier.
+ */
+export function tippAufschluesselung(
+  tippH: number, tippG: number,
+  realH: number | null, realG: number | null,
+  phase: Phase, elfmeter: Sieger | null,
+): { guete: 'exakt' | 'teiltreffer' | 'daneben' | 'offen'; koBonus: boolean } {
+  const guete = tippGuete(tippH, tippG, realH, realG)
+  let koBonus = false
+  if (phase === 'ko' && elfmeter && realH !== null && realG !== null) {
+    const getippterSieger: Sieger | null =
+      tippH > tippG ? 'heim' : tippG > tippH ? 'gast' : null
+    koBonus = getippterSieger != null && getippterSieger === elfmeter
+  }
+  return { guete, koBonus }
+}

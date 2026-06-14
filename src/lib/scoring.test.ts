@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { punkteFuer, tippGuete } from './scoring'
+import { punkteFuer, tippGuete, tippAufschluesselung } from './scoring'
 
 describe('punkteFuer – Gruppenphase', () => {
   it('exaktes Ergebnis = 3', () => {
@@ -42,5 +42,32 @@ describe('tippGuete', () => {
     expect(tippGuete(2, 0, 2, 1)).toBe('teiltreffer')
     expect(tippGuete(0, 0, 2, 1)).toBe('daneben')
     expect(tippGuete(2, 1, null, null)).toBe('offen')
+  })
+})
+
+describe('tippAufschluesselung', () => {
+  it('Gruppe exakt – kein K.o.-Bonus', () => {
+    expect(tippAufschluesselung(2, 1, 2, 1, 'gruppe', null)).toEqual({ guete: 'exakt', koBonus: false })
+  })
+  it('Gruppe Teiltreffer', () => {
+    expect(tippAufschluesselung(2, 0, 2, 1, 'gruppe', null)).toEqual({ guete: 'teiltreffer', koBonus: false })
+  })
+  it('Gruppe daneben', () => {
+    expect(tippAufschluesselung(0, 0, 2, 1, 'gruppe', null)).toEqual({ guete: 'daneben', koBonus: false })
+  })
+  it('K.o. mit Elfmeter: Teiltreffer + richtiger Sieger -> Bonus', () => {
+    expect(tippAufschluesselung(2, 1, 1, 1, 'ko', 'heim')).toEqual({ guete: 'teiltreffer', koBonus: true })
+  })
+  it('K.o. mit Elfmeter: falscher Sieger -> kein Bonus', () => {
+    expect(tippAufschluesselung(1, 2, 1, 1, 'ko', 'heim')).toEqual({ guete: 'teiltreffer', koBonus: false })
+  })
+  it('K.o. mit Elfmeter: Unentschieden getippt -> kein Sieger, kein Bonus', () => {
+    expect(tippAufschluesselung(1, 1, 1, 1, 'ko', 'heim')).toEqual({ guete: 'exakt', koBonus: false })
+  })
+  it('K.o. ohne Elfmeter: kein Bonus', () => {
+    expect(tippAufschluesselung(2, 1, 2, 1, 'ko', null)).toEqual({ guete: 'exakt', koBonus: false })
+  })
+  it('noch kein Ergebnis -> offen, kein Bonus', () => {
+    expect(tippAufschluesselung(2, 1, null, null, 'ko', 'heim')).toEqual({ guete: 'offen', koBonus: false })
   })
 })

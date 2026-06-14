@@ -6,6 +6,7 @@ import { Login } from './pages/Login'
 import { Register } from './pages/Register'
 import { Setup } from './pages/Setup'
 import { Tippen } from './pages/Tippen'
+import { MeineTipps } from './pages/MeineTipps'
 import { Spielplan } from './pages/Spielplan'
 import { Tabellen } from './pages/Tabellen'
 import { MeineTeams } from './pages/MeineTeams'
@@ -45,6 +46,7 @@ export default function App() {
           <Route path="/setup" element={<Setup />} />
           <Route element={<RequireAuth />}>
             <Route path="/tippen" element={<Tippen />} />
+            <Route path="/meine-tipps" element={<MeineTipps />} />
             <Route path="/spielplan" element={<Spielplan />} />
             <Route path="/tabellen" element={<Tabellen />} />
             <Route path="/meine-teams" element={<MeineTeams />} />
