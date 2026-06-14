@@ -31,13 +31,19 @@ export function Regeln() {
         <h2 className="font-extrabold text-pitch-700">So gibt es Punkte</h2>
         <ul className="space-y-1.5 font-semibold text-slate-600">
           <li>🎯 <b>Exaktes Ergebnis</b> getippt → <b>3 Punkte</b></li>
-          <li>½ <b>Eine Mannschaft</b> mit richtiger Torzahl → <b>1 Punkt</b></li>
+          <li>½ <b>Eine Mannschaft</b> mit richtiger Torzahl → <b>2 Punkte</b></li>
+          <li>↗ <b>Richtige Tendenz</b> (richtiger Sieger oder Unentschieden) → <b>1 Punkt</b></li>
           <li>❌ Sonst → <b>0 Punkte</b></li>
         </ul>
+        <p className="text-xs font-semibold text-slate-400">
+          Es zählt immer die höchste zutreffende Stufe (kein Stapeln).
+        </p>
         <div className="space-y-2 pt-1">
           <Beispiel tippH={2} tippG={1} realH={2} realG={1} note="Beide Tore exakt richtig" />
           <Beispiel tippH={2} tippG={0} realH={2} realG={1} note="Heim-Tore (2) stimmen" />
           <Beispiel tippH={0} tippG={1} realH={2} realG={1} note="Gast-Tore (1) stimmen" />
+          <Beispiel tippH={3} tippG={1} realH={1} realG={0} note="Heimsieg richtig getippt, aber keine Torzahl" />
+          <Beispiel tippH={1} tippG={1} realH={2} realG={2} note="Unentschieden richtig, aber keine Torzahl" />
           <Beispiel tippH={1} tippG={3} realH={2} realG={1} note="Nichts stimmt" />
         </div>
       </section>
@@ -50,9 +56,9 @@ export function Regeln() {
           weiterkommende Mannschaft als Sieger getippt hast.
         </p>
         <div className="space-y-2">
-          <Beispiel tippH={2} tippG={1} realH={1} realG={1} phase="ko" elfmeter="heim" note="Gast-Tor stimmt (1 Pkt) + Sieger Heim richtig (+1)" />
+          <Beispiel tippH={2} tippG={1} realH={1} realG={1} phase="ko" elfmeter="heim" note="Gast-Tor stimmt (2 Pkt) + Sieger Heim richtig (+1)" />
           <Beispiel tippH={1} tippG={1} realH={1} realG={1} phase="ko" elfmeter="heim" note="Exakt (3 Pkt) – aber Unentschieden getippt, kein Sieger-Bonus" />
-          <Beispiel tippH={1} tippG={2} realH={1} realG={1} phase="ko" elfmeter="heim" note="Heim-Tor stimmt (1 Pkt), aber falscher Sieger getippt" />
+          <Beispiel tippH={1} tippG={2} realH={1} realG={1} phase="ko" elfmeter="heim" note="Heim-Tor stimmt (2 Pkt), aber falscher Sieger getippt" />
         </div>
       </section>
 

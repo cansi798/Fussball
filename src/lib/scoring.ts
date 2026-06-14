@@ -1,11 +1,21 @@
 import type { Phase, Sieger } from './types'
 
+type Tendenz = 'heim' | 'gast' | 'remis'
+
+/** Ausgang eines Spiels/Tipps: Heimsieg, Gastsieg oder Unentschieden. */
+function tendenz(h: number, g: number): Tendenz {
+  return h > g ? 'heim' : h < g ? 'gast' : 'remis'
+}
+
 /**
  * Punkteberechnung – exakt gespiegelt zur SQL-Funktion `punkte_fuer`.
- * Regel: exaktes Ergebnis = 3, genau eine korrekte Torzahl = 1, sonst 0.
+ * Regel (gestaffelt, höchste zutreffende Stufe):
+ *   - exaktes Ergebnis (beide Torzahlen) = 3
+ *   - genau eine Torzahl richtig = 2
+ *   - richtige Tendenz (richtiger Sieger bzw. richtiges Unentschieden) = 1
+ *   - sonst 0
  * K.o. + Elfmeterschießen: +1 Bonus, wenn der Tipp die weiterkommende
- * Mannschaft als Sieger hatte (Nicht-Unentschieden zugunsten des Siegers).
- * Verglichen wird der Stand NACH Verlängerung.
+ * Mannschaft als Sieger hatte. Verglichen wird der Stand NACH Verlängerung.
  */
 export function punkteFuer(
   tippH: number,
@@ -21,7 +31,11 @@ export function punkteFuer(
   if (tippH === realH) treffer++
   if (tippG === realG) treffer++
 
-  let basis = treffer === 2 ? 3 : treffer === 1 ? 1 : 0
+  let basis: number
+  if (treffer === 2) basis = 3
+  else if (treffer === 1) basis = 2
+  else if (tendenz(tippH, tippG) === tendenz(realH, realG)) basis = 1
+  else basis = 0
 
   if (phase === 'ko' && elfmeter) {
     const getippterSieger: Sieger | null =
@@ -35,10 +49,11 @@ export function punkteFuer(
 /** Kurzklassifikation für die Anzeige eines bewerteten Tipps. */
 export function tippGuete(
   tippH: number, tippG: number, realH: number | null, realG: number | null,
-): 'exakt' | 'teiltreffer' | 'daneben' | 'offen' {
+): 'exakt' | 'teiltreffer' | 'tendenz' | 'daneben' | 'offen' {
   if (realH === null || realG === null) return 'offen'
   if (tippH === realH && tippG === realG) return 'exakt'
   if (tippH === realH || tippG === realG) return 'teiltreffer'
+  if (tendenz(tippH, tippG) === tendenz(realH, realG)) return 'tendenz'
   return 'daneben'
 }
 
@@ -52,7 +67,7 @@ export function tippAufschluesselung(
   tippH: number, tippG: number,
   realH: number | null, realG: number | null,
   phase: Phase, elfmeter: Sieger | null,
-): { guete: 'exakt' | 'teiltreffer' | 'daneben' | 'offen'; koBonus: boolean } {
+): { guete: 'exakt' | 'teiltreffer' | 'tendenz' | 'daneben' | 'offen'; koBonus: boolean } {
   const guete = tippGuete(tippH, tippG, realH, realG)
   let koBonus = false
   if (phase === 'ko' && elfmeter && realH !== null && realG !== null) {

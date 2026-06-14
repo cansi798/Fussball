@@ -97,7 +97,7 @@ export function Tippen() {
         )}
       </div>
 
-      <Hinweis>Tippe vor Anpfiff – bis dahin beliebig änderbar. Exakt = 3 · eine Mannschaft = 1 · sonst 0.</Hinweis>
+      <Hinweis>Tippe vor Anpfiff – bis dahin beliebig änderbar. Exakt = 3 · eine Torzahl = 2 · Tendenz = 1 · sonst 0.</Hinweis>
 
       {(session?.memberships?.length ?? 0) > 1 && alsId === session?.teilnehmer_id && (
         <div className="flex flex-wrap items-center gap-2">

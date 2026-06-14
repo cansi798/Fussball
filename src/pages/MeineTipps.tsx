@@ -81,7 +81,7 @@ export function MeineTipps() {
 
       <Hinweis>
         Rückschau auf beendete Spiele: dein Tipp, das Ergebnis und die Punkte.
-        Exakt = 3 · eine Mannschaft = 1 · sonst 0.
+        Exakt = 3 · eine Torzahl = 2 · Tendenz = 1 · sonst 0.
         {bewertet.length > 0 && <> · <span className="font-extrabold">Gesamt: {gesamt} Pkt</span></>}
       </Hinweis>
 
@@ -100,7 +100,8 @@ export function MeineTipps() {
 
 const GUETE_STYLE: Record<string, { label: string; pill: string; punkte: string }> = {
   exakt: { label: '✓✓ exakt', pill: 'bg-emerald-100 text-emerald-700', punkte: 'text-emerald-600' },
-  teiltreffer: { label: '✓ eine Mannschaft', pill: 'bg-amber-100 text-amber-700', punkte: 'text-amber-600' },
+  teiltreffer: { label: '✓ eine Torzahl', pill: 'bg-amber-100 text-amber-700', punkte: 'text-amber-600' },
+  tendenz: { label: '↗ Tendenz', pill: 'bg-sky-100 text-sky-700', punkte: 'text-sky-600' },
   daneben: { label: '✗ daneben', pill: 'bg-slate-100 text-slate-500', punkte: 'text-slate-400' },
   offen: { label: 'offen', pill: 'bg-slate-100 text-slate-500', punkte: 'text-slate-400' },
 }
