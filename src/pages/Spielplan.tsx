@@ -115,7 +115,9 @@ function SpielplanZeile({ spiel }: { spiel: Spiel }) {
     <div className="flex items-center gap-3 px-4 py-3">
       <div className="w-14 shrink-0 text-center">
         {status === 'live' ? (
-          <span className="pill bg-red-100 text-red-600 text-[11px]">live</span>
+          <span className="pill bg-red-100 text-red-600 text-[11px] animate-pulse">
+            {spiel.live_minute ? `⏱ ${spiel.live_minute}` : 'live'}
+          </span>
         ) : status === 'beendet' ? (
           <span className="block text-xs font-bold text-slate-400">{hatErgebnis ? 'Endstand' : 'beendet'}</span>
         ) : (

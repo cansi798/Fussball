@@ -42,6 +42,7 @@ export interface Spiel {
   elfmeter_sieger: Sieger | null
   tv_sender: string | null
   ist_beendet: boolean
+  live_minute: string | null
   heim?: Mannschaft | null
   gast?: Mannschaft | null
 }
