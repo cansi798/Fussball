@@ -9,7 +9,7 @@ import { apiMembership } from '../lib/api'
 import type { Spiel, Tipp } from '../lib/types'
 
 export function Tippen() {
-  const { supabase, session } = useAuth()
+  const { supabase, session, dataVersion } = useAuth()
   const { players } = useFamilie()
   const [alsId, setAlsId] = useState<string>('')
   const [spiele, setSpiele] = useState<Spiel[]>([])
@@ -49,7 +49,7 @@ export function Tippen() {
       if (aktiv) { setSpiele((data as any) ?? []); setLoading(false) }
     })()
     return () => { aktiv = false }
-  }, [supabase])
+  }, [supabase, dataVersion])
 
   // Tipps des gewählten Spielers laden
   useEffect(() => {
@@ -64,7 +64,7 @@ export function Tippen() {
       setTipps(map)
     })()
     return () => { aktiv = false }
-  }, [alsId, supabase])
+  }, [alsId, supabase, dataVersion])
 
   async function speichern(spielId: string, h: number, g: number) {
     const { data, error } = await supabase.from('tipp').upsert(

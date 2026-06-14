@@ -2,6 +2,10 @@
 // und schreibt Mannschaften + Spiele. Ergebnis-Updates lösen die Punkte-
 // Neuberechnung per DB-Trigger aus. tv_sender bleibt bei Updates unangetastet
 // (damit manuelle ARD/ZDF-Korrekturen erhalten bleiben).
+//
+// Robust per BATCH: ein Upsert für alle Teams, ein Upsert für alle Spiele –
+// statt >200 sequenzieller Einzel-Calls. Das verhindert Teilausfälle/Timeouts,
+// bei denen früher nicht alle Spiele aktualisiert wurden.
 import { serviceClient } from '../_shared/db.ts'
 import { json, handleOptions } from '../_shared/cors.ts'
 
@@ -48,52 +52,59 @@ Deno.serve(async (req) => {
     const res = await fetch(`https://api.openligadb.de/getmatchdata/${liga}/${saison}`)
     if (!res.ok) return json({ error: `OpenLigaDB antwortet mit ${res.status}` }, 502)
     const matches = (await res.json()) as any[]
+    if (!Array.isArray(matches)) return json({ error: 'OpenLigaDB lieferte kein gültiges Format' }, 502)
 
-    // Mannschafts-Cache (openliga_team_id -> uuid)
-    const teamCache = new Map<number, string>()
-    async function teamId(team: any): Promise<string | null> {
-      if (!team?.teamId) return null
-      if (teamCache.has(team.teamId)) return teamCache.get(team.teamId)!
-      const { data } = await db.from('mannschaft').upsert({
-        openliga_team_id: team.teamId,
-        name: team.teamName,
-        kuerzel: team.shortName ?? null,
-        flagge_url: team.teamIconUrl ?? null,
-      }, { onConflict: 'openliga_team_id' }).select('id').single()
-      if (data) teamCache.set(team.teamId, data.id)
-      return data?.id ?? null
+    // ---------- 1. Alle Mannschaften in EINEM Batch upserten ----------
+    const uniqueTeams = new Map<number, any>()
+    for (const m of matches) {
+      for (const t of [m.team1, m.team2]) {
+        if (t?.teamId && !uniqueTeams.has(t.teamId)) uniqueTeams.set(t.teamId, t)
+      }
+    }
+    const teamMap = new Map<number, string>() // openliga_team_id -> uuid
+    if (uniqueTeams.size > 0) {
+      const { data: teamRows, error: teamErr } = await db.from('mannschaft').upsert(
+        [...uniqueTeams.values()].map((t) => ({
+          openliga_team_id: t.teamId,
+          name: t.teamName,
+          kuerzel: t.shortName ?? null,
+          flagge_url: t.teamIconUrl ?? null,
+        })),
+        { onConflict: 'openliga_team_id' },
+      ).select('id, openliga_team_id')
+      if (teamErr) return json({ error: `Teams speichern fehlgeschlagen: ${teamErr.message}` }, 500)
+      for (const r of teamRows ?? []) teamMap.set(r.openliga_team_id as number, r.id as string)
     }
 
-    let neu = 0, aktualisiert = 0
+    // ---------- 2. Bestehende Spiel-IDs für die neu/aktualisiert-Zählung ----------
+    const { data: existingRows } = await db.from('spiel').select('openliga_match_id')
+    const existing = new Set((existingRows ?? []).map((r: any) => r.openliga_match_id))
+
+    // ---------- 3. Alle Spiel-Zeilen bauen (tv_sender bewusst weggelassen) ----------
+    const rows: Record<string, unknown>[] = []
     for (const m of matches) {
-      try {
-        const heim = await teamId(m.team1)
-        const gast = await teamId(m.team2)
-        const anstoss = m.matchDateTimeUTC ?? m.matchDateTime
-        if (!anstoss) continue
-        const { toreH, toreG, elfmeter } = ergebnisAuswerten(m.matchResults ?? [])
-        const phase = istKo(m.group?.groupName) ? 'ko' : 'gruppe'
+      const anstoss = m.matchDateTimeUTC ?? m.matchDateTime
+      if (!anstoss || m.matchID == null) continue
+      const { toreH, toreG, elfmeter } = ergebnisAuswerten(m.matchResults ?? [])
+      rows.push({
+        openliga_match_id: m.matchID,
+        heim_id: teamMap.get(m.team1?.teamId) ?? null,
+        gast_id: teamMap.get(m.team2?.teamId) ?? null,
+        anstoss,
+        phase: istKo(m.group?.groupName) ? 'ko' : 'gruppe',
+        tore_heim: toreH,
+        tore_gast: toreG,
+        elfmeter_sieger: elfmeter,
+        ist_beendet: !!m.matchIsFinished,
+      })
+    }
 
-        const { data: vorhanden } = await db.from('spiel')
-          .select('id').eq('openliga_match_id', m.matchID).maybeSingle()
-
-        const felder = {
-          openliga_match_id: m.matchID,
-          heim_id: heim, gast_id: gast,
-          anstoss, phase,
-          tore_heim: toreH, tore_gast: toreG,
-          elfmeter_sieger: elfmeter,
-          ist_beendet: !!m.matchIsFinished,
-        }
-
-        if (vorhanden) {
-          await db.from('spiel').update(felder).eq('id', vorhanden.id) // tv_sender bleibt
-          aktualisiert++
-        } else {
-          await db.from('spiel').insert(felder) // tv_sender -> Default 'MagentaTV'
-          neu++
-        }
-      } catch (_) { /* ein fehlerhafter Datensatz darf den Sync nicht abbrechen */ }
+    // ---------- 4. Alle Spiele in EINEM Batch upserten ----------
+    let neu = 0, aktualisiert = 0
+    if (rows.length > 0) {
+      const { error: spielErr } = await db.from('spiel').upsert(rows, { onConflict: 'openliga_match_id' })
+      if (spielErr) return json({ error: `Spiele speichern fehlgeschlagen: ${spielErr.message}` }, 500)
+      for (const r of rows) (existing.has(r.openliga_match_id) ? aktualisiert++ : neu++)
     }
 
     return json({ ok: true, gesamt: matches.length, neu, aktualisiert })

@@ -11,7 +11,7 @@ function sortiere(a: RanglisteRow, b: RanglisteRow) {
 }
 
 export function Tabellen() {
-  const { supabase, session } = useAuth()
+  const { supabase, session, dataVersion } = useAuth()
   const [rows, setRows] = useState<RanglisteRow[]>([])
   const [tab, setTab] = useState<Tab>('gesamt')
   const [vereinFilter, setVereinFilter] = useState<string>('')
@@ -25,7 +25,7 @@ export function Tabellen() {
       if (aktiv) { setRows((data as RanglisteRow[]) ?? []); setLoading(false) }
     })()
     return () => { aktiv = false }
-  }, [supabase])
+  }, [supabase, dataVersion])
 
   const istAdmin = session?.rolle === 'admin'
   const vereine = useMemo(

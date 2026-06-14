@@ -1,8 +1,8 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 
-interface NavItem { to: string; label: string; icon: string }
+interface NavItem { to: string; label: string; icon: string; short?: string }
 
 function VereinSwitcher() {
   const { session, switchVerein } = useAuth()
@@ -38,8 +38,20 @@ function VereinSwitcher() {
 }
 
 export function Layout() {
-  const { session, logout } = useAuth()
+  const { session, logout, refreshData } = useAuth()
   const navigate = useNavigate()
+
+  // Automatischer Sync: einmal beim Login/App-Start, danach alle 2 Minuten und
+  // jedes Mal, wenn die App wieder in den Vordergrund kommt (z. B. Handy entsperrt).
+  useEffect(() => {
+    if (!session) return
+    refreshData()
+    const id = setInterval(refreshData, 120_000)
+    const onVisible = () => { if (document.visibilityState === 'visible') refreshData() }
+    document.addEventListener('visibilitychange', onVisible)
+    return () => { clearInterval(id); document.removeEventListener('visibilitychange', onVisible) }
+  }, [session?.teilnehmer_id, refreshData])
+
   if (!session) return null
 
   const items: NavItem[] = [
@@ -47,7 +59,7 @@ export function Layout() {
     { to: '/spielplan', label: 'Spielplan', icon: '📅' },
     { to: '/tabellen', label: 'Tabelle', icon: '🏆' },
   ]
-  if (session.rolle !== 'admin') items.push({ to: '/meine-tipps', label: 'Meine Tipps', icon: '🎯' })
+  if (session.rolle !== 'admin') items.push({ to: '/meine-tipps', label: 'Meine Tipps', icon: '🎯', short: 'Tipps' })
   if (session.rolle !== 'admin') items.push({ to: '/meine-teams', label: 'Teams', icon: '⭐' })
   items.push({ to: '/regeln', label: 'Regeln', icon: '📖' })
   if (session.rolle === 'admin') items.push({ to: '/admin', label: 'Admin', icon: '🛠️' })
@@ -114,7 +126,7 @@ export function Layout() {
               }
             >
               <span className="text-xl">{it.icon}</span>
-              {it.label}
+              <span className="leading-none">{it.short ?? it.label}</span>
             </NavLink>
           ))}
         </div>

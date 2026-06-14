@@ -5,17 +5,15 @@ import { Team } from '../components/Team'
 import { SenderBadge } from '../components/SenderBadge'
 import { Spinner, Leer, Hinweis } from '../components/Ui'
 import { tagKey, tagLabel, formatZeit, istVorbei } from '../lib/format'
-import { apiSync } from '../lib/api'
 import type { Spiel } from '../lib/types'
 
 export function Spielplan() {
-  const { supabase, session } = useAuth()
+  const { supabase, refreshData, syncing, dataVersion } = useAuth()
   const { players } = useFamilie()
   const [spiele, setSpiele] = useState<Spiel[]>([])
   const [followed, setFollowed] = useState<Set<string>>(new Set())
   const [nurMeine, setNurMeine] = useState(false)
   const [loading, setLoading] = useState(true)
-  const [syncing, setSyncing] = useState(false)
   const [msg, setMsg] = useState<string | null>(null)
 
   async function ladeSpiele() {
@@ -34,7 +32,7 @@ export function Spielplan() {
       if (aktiv) setLoading(false)
     })()
     return () => { aktiv = false }
-  }, [supabase])
+  }, [supabase, dataVersion])
 
   // Verfolgte Teams der Familie für den Filter laden
   useEffect(() => {
@@ -47,16 +45,9 @@ export function Spielplan() {
   }, [players, supabase])
 
   async function sync() {
-    setSyncing(true); setMsg(null)
-    try {
-      const r: any = await apiSync(session!.token)
-      await ladeSpiele()
-      setMsg(`Aktualisiert · ${r.aktualisiert ?? 0} Spiele, ${r.neu ?? 0} neu`)
-    } catch (e) {
-      setMsg(e instanceof Error ? e.message : 'Sync fehlgeschlagen')
-    } finally {
-      setSyncing(false)
-    }
+    setMsg(null)
+    await refreshData() // synct + lädt via dataVersion-Effekt neu
+    setMsg('Spielplan aktualisiert')
   }
 
   const gefiltert = useMemo(() => {

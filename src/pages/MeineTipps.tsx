@@ -8,7 +8,7 @@ import { tippAufschluesselung } from '../lib/scoring'
 import type { Spiel, Tipp } from '../lib/types'
 
 export function MeineTipps() {
-  const { supabase, session } = useAuth()
+  const { supabase, session, dataVersion } = useAuth()
   const { players } = useFamilie()
   const [alsId, setAlsId] = useState<string>('')
   const [spiele, setSpiele] = useState<Spiel[]>([])
@@ -34,7 +34,7 @@ export function MeineTipps() {
       if (aktiv) { setSpiele((data as any) ?? []); setLoading(false) }
     })()
     return () => { aktiv = false }
-  }, [supabase])
+  }, [supabase, dataVersion])
 
   // Tipps des gewählten Spielers laden
   useEffect(() => {
@@ -49,7 +49,7 @@ export function MeineTipps() {
       setTipps(map)
     })()
     return () => { aktiv = false }
-  }, [alsId, supabase])
+  }, [alsId, supabase, dataVersion])
 
   // Nur beendete Spiele, für die ein Tipp existiert
   const bewertet = useMemo(

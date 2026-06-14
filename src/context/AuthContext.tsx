@@ -1,9 +1,9 @@
-import { createContext, useContext, useMemo, useState, type ReactNode } from 'react'
+import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Membership, Rolle, Session } from '../lib/types'
 import { makeClient } from '../lib/supabase'
 import { loadSession, saveSession } from '../lib/session'
-import { apiLogin, apiRegister, apiMembership, type KindForm, type PartnerForm } from '../lib/api'
+import { apiLogin, apiRegister, apiMembership, apiSync, type KindForm, type PartnerForm } from '../lib/api'
 
 /** Liest die Claims aus einem JWT (ohne Signaturprüfung – nur zum Anzeigen). */
 function decodeClaims(token: string): any {
@@ -39,6 +39,12 @@ interface AuthCtxValue {
   switchVerein: (teilnehmerId: string) => Promise<void>
   joinVerein: (code: string, opts?: { mitKinder?: boolean; mitPartner?: boolean; mitTipps?: boolean }) => Promise<void>
   logout: () => void
+  /** Zähler, der nach jedem Sync hochzählt – Seiten hängen ihre Lade-Effekte daran. */
+  dataVersion: number
+  /** true, während ein Sync läuft (für Buttons/Spinner). */
+  syncing: boolean
+  /** Stößt OpenLigaDB-Sync an und signalisiert danach allen Seiten ein Neuladen. */
+  refreshData: () => Promise<void>
 }
 
 const AuthCtx = createContext<AuthCtxValue | null>(null)
@@ -46,11 +52,29 @@ const AuthCtx = createContext<AuthCtxValue | null>(null)
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(() => loadSession())
   const supabase = useMemo(() => makeClient(session?.token ?? null), [session?.token])
+  const [dataVersion, setDataVersion] = useState(0)
+  const [syncing, setSyncing] = useState(false)
 
   function apply(s: Session | null) {
     saveSession(s)
     setSession(s)
   }
+
+  const token = session?.token ?? null
+  // Stabil über Renders hinweg, abhängig nur vom Token (für Effekt-Deps in Layout).
+  const refreshData = useCallback(async () => {
+    if (!token) return
+    setSyncing(true)
+    try {
+      await apiSync(token)
+    } catch {
+      // Sync-Fehler (z. B. OpenLigaDB kurz down) sollen das Neuladen nicht blockieren:
+      // Daten werden trotzdem frisch aus der DB geholt (evtl. hat ein anderer Client synct).
+    } finally {
+      setSyncing(false)
+      setDataVersion((v) => v + 1)
+    }
+  }, [token])
 
   const value: AuthCtxValue = {
     session,
@@ -73,6 +97,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       apply(sessionFrom(resp))
     },
     logout() { apply(null) },
+    dataVersion,
+    syncing,
+    refreshData,
   }
 
   return <AuthCtx.Provider value={value}>{children}</AuthCtx.Provider>
