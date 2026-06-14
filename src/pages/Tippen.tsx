@@ -40,10 +40,14 @@ export function Tippen() {
     let aktiv = true
     ;(async () => {
       setLoading(true)
+      // Nur Spiele mit feststehenden Teams – Platzhalter-K.o.-Spiele (noch ohne
+      // Paarung) erscheinen erst zum Tippen, sobald die Länder bekannt sind.
       const { data } = await supabase
         .from('spiel')
         .select('*, heim:heim_id(*), gast:gast_id(*)')
         .gt('anstoss', new Date().toISOString())
+        .not('heim_id', 'is', null)
+        .not('gast_id', 'is', null)
         .order('anstoss')
         .limit(60)
       if (aktiv) { setSpiele((data as any) ?? []); setLoading(false) }
