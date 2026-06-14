@@ -67,7 +67,7 @@ export function Layout() {
   return (
     <div className="min-h-screen pb-24 sm:pb-0">
       {/* Kopfzeile */}
-      <header className="sticky top-0 z-20 border-b border-black/5 bg-white/80 backdrop-blur">
+      <header className="sm:sticky sm:top-0 z-20 border-b border-black/5 bg-white/80 backdrop-blur">
         <div className="mx-auto flex max-w-4xl items-center justify-between gap-3 px-4 py-3">
           <div className="flex items-center gap-2 min-w-0">
             <span className="text-2xl">⚽</span>
