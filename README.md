@@ -15,12 +15,14 @@ Eine responsive Webapp, in der **Kinder & Eltern** die Ergebnisse der Fußball-W
 ---
 
 ## Punkteregeln
+Es zählt immer die höchste zutreffende Stufe (kein Stapeln):
 - **Exaktes Ergebnis = 3 Punkte**
-- **Eine Mannschaft mit korrekter Torzahl = 1 Punkt**
+- **Eine Mannschaft mit korrekter Torzahl = 2 Punkte**
+- **Richtige Tendenz (richtiger Sieger oder Unentschieden) = 1 Punkt**
 - **Sonst = 0**
 - **K.o.-Spiele:** gewertet wird der Stand **nach Verlängerung**; bei
-  Elfmeterschießen gibt es **+1 Bonus**, wenn die weiterkommende Mannschaft als
-  Sieger getippt war.
+  Elfmeterschießen gibt es **+1 Extra-Punkt**, wenn die weiterkommende Mannschaft
+  als Sieger getippt war.
 - Getippt wird **nur vor Anpfiff** (bis dahin beliebig änderbar).
 
 ---
