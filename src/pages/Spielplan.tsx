@@ -4,7 +4,7 @@ import { useFamilie } from '../hooks/useFamilie'
 import { Team } from '../components/Team'
 import { SenderBadge } from '../components/SenderBadge'
 import { Spinner, Leer, Hinweis } from '../components/Ui'
-import { tagKey, tagLabel, formatZeit, istVorbei } from '../lib/format'
+import { tagKey, tagLabel, formatZeit, spielStatus } from '../lib/format'
 import type { Spiel } from '../lib/types'
 
 export function Spielplan() {
@@ -109,22 +109,22 @@ export function Spielplan() {
 }
 
 function SpielplanZeile({ spiel }: { spiel: Spiel }) {
-  const beendet = spiel.ist_beendet && spiel.tore_heim !== null
-  const laufend = !spiel.ist_beendet && istVorbei(spiel.anstoss)
+  const status = spielStatus(spiel)
+  const hatErgebnis = spiel.tore_heim !== null
   return (
     <div className="flex items-center gap-3 px-4 py-3">
       <div className="w-14 shrink-0 text-center">
-        {beendet ? (
-          <span className="block text-xs font-bold text-slate-400">Endstand</span>
-        ) : laufend ? (
+        {status === 'live' ? (
           <span className="pill bg-red-100 text-red-600 text-[11px]">live</span>
+        ) : status === 'beendet' ? (
+          <span className="block text-xs font-bold text-slate-400">{hatErgebnis ? 'Endstand' : 'beendet'}</span>
         ) : (
           <span className="block text-sm font-bold text-slate-500">{formatZeit(spiel.anstoss).replace(' Uhr', '')}</span>
         )}
       </div>
       <div className="flex-1"><Team team={spiel.heim} /></div>
       <div className="w-16 shrink-0 text-center">
-        {beendet || (laufend && spiel.tore_heim !== null) ? (
+        {hatErgebnis && status !== 'kommend' ? (
           <span className="text-lg font-black text-pitch-700">{spiel.tore_heim}:{spiel.tore_gast}</span>
         ) : (
           <span className="text-slate-300 font-black">–:–</span>

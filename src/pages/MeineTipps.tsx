@@ -3,7 +3,7 @@ import { useAuth } from '../context/AuthContext'
 import { useFamilie } from '../hooks/useFamilie'
 import { Team } from '../components/Team'
 import { Spinner, Hinweis, Leer, SegmentSwitch } from '../components/Ui'
-import { formatDatum } from '../lib/format'
+import { formatDatum, spielStatus } from '../lib/format'
 import { tippAufschluesselung } from '../lib/scoring'
 import type { Spiel, Tipp } from '../lib/types'
 
@@ -25,10 +25,11 @@ export function MeineTipps() {
     let aktiv = true
     ;(async () => {
       setLoading(true)
+      // Alle Spiele mit Ergebnis laden (nicht strikt ist_beendet, da das
+      // OpenLigaDB-Flag nachhinken kann); laufende Spiele filtern wir unten raus.
       const { data } = await supabase
         .from('spiel')
         .select('*, heim:heim_id(*), gast:gast_id(*)')
-        .eq('ist_beendet', true)
         .not('tore_heim', 'is', null)
         .order('anstoss', { ascending: false })
       if (aktiv) { setSpiele((data as any) ?? []); setLoading(false) }
@@ -51,9 +52,11 @@ export function MeineTipps() {
     return () => { aktiv = false }
   }, [alsId, supabase, dataVersion])
 
-  // Nur beendete Spiele, für die ein Tipp existiert
+  // Nur beendete Spiele (kein laufendes) mit eigenem Tipp
   const bewertet = useMemo(
-    () => spiele.filter((s) => tipps[s.id]).map((s) => ({ spiel: s, tipp: tipps[s.id] })),
+    () => spiele
+      .filter((s) => tipps[s.id] && spielStatus(s) === 'beendet')
+      .map((s) => ({ spiel: s, tipp: tipps[s.id] })),
     [spiele, tipps],
   )
   const gesamt = useMemo(() => bewertet.reduce((sum, b) => sum + (b.tipp.punkte ?? 0), 0), [bewertet])
